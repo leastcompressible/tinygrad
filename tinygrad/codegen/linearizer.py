@@ -108,14 +108,14 @@ class Linearizer(OptimizedKernel):
         float4_substitute = {**substitute, fake_idxs[dim]: expanded_nodes[dim][0]}
         idx, valid = g_idx.substitute(float4_substitute), g_valid.substitute(float4_substitute)
         localtype = dtypes._float4 if amt == 4 else dtypes._float2
-        if idx.render() != ((idx//amt)*amt).render():
+        if idx != ((idx//amt)*amt):
           idx, valid = g_idx.substitute(substitute), g_valid.substitute(substitute)
           localtype = dtypes.float32
       else:
         idx, valid = g_idx.substitute(substitute), g_valid.substitute(substitute)
         localtype = dtypes.float32
       this_const, idx, valid = (invalid_value, Variable.num(0), Variable.num(1)) if valid.max == 0 else (const, idx, valid)
-      key = f"{acc}{localtype}{this_const if this_const is not None and acc is None else self.get_buffer_name(i)}{idx.render()}{valid.render()}"
+      key = f"{acc}{localtype}{this_const if this_const is not None and acc is None else self.get_buffer_name(i)}{idx}{valid}"
       if key not in self.load_cache:
         if acc is not None:
           assert valid.min == 1
@@ -160,7 +160,7 @@ class Linearizer(OptimizedKernel):
       for k,out_tokens in grouped_store_offset.items():
         amt = len(out_tokens)
         idx, valid = self.sts[i].expr_idxs(k)
-        assert idx.render() == ((idx//amt)*amt).render(), "float4 stores are always aligned"
+        assert idx == ((idx//amt)*amt), "float4 stores are always aligned"
         assert valid.min == 1, "stores are always valid"
         store_offset_new[k] = self.uop(UOps.CAST, dtypes._float4 if amt == 4 else dtypes._float2, tuple(out_tokens))
       store_offset = store_offset_new
