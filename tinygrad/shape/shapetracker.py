@@ -6,20 +6,7 @@ from typing import Tuple, List, Optional, Dict, cast
 from tinygrad.ops import MovementOps
 from tinygrad.helpers import prod, DEBUG, dedup
 from tinygrad.shape.symbolic import Variable, MulNode, NumNode, Node, SumNode, sint
-from tinygrad.shape.view import View
-
-@functools.lru_cache(maxsize=None)
-def to_shape_strides(shape:Tuple[int, ...], strides:Tuple[int, ...]) -> Tuple[Tuple[int, int], ...]:
-  assert len(shape) == len(strides)
-  ret = [(shape[0], strides[0])] if shape else []
-  for i in range(1, len(shape)):
-    if ret[-1][1] == shape[i]*strides[i] or ret[-1][0] == 1:
-      ret[-1] = (ret[-1][0] * shape[i], strides[i])
-    elif shape[i] == 1:
-      continue
-    else:
-      ret.append((shape[i], strides[i]))
-  return tuple(ret)
+from tinygrad.shape.view import View, to_shape_strides
 
 def expr_node_mask(view:View, idx, valid=None) -> Node:
   expr = [valid] if valid is not None else []
@@ -190,12 +177,7 @@ class ShapeTracker:
 
   def reshape(self, new_shape: Tuple[sint, ...]) -> ShapeTracker:
     new_view = self.views[-1].reshape(new_shape)
-    if new_view is None:
-      extra_view = View.create(new_shape)
-      # last chance to merge. TODO: move into View
-      if (merged_view := merge_views(self.views[-1], extra_view)) is not None:
-        return ShapeTracker(self.views[0:-1] + (merged_view,))
-      return ShapeTracker(self.views + (extra_view, ))
+    if new_view is None: return ShapeTracker(self.views + (View.create(new_shape), ))
     return ShapeTracker(self.views[0:-1] + (new_view,))
 
 # returns the axes to create new_shape if new_shape can be created by combining axis from old_shape
