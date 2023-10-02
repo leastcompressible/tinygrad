@@ -109,15 +109,15 @@ class LazyBuffer:
     self.output_buffer: Optional[RawBuffer] = None   # TODO: do we really need this? or can we just use realized
     # TODO: does children have to be a ref count instead of a set? can a Buffer be a double child?
     self.children: WeakSet = WeakSet()
-    self.views: WeakSet = WeakSet()
+    # self.views: WeakSet = WeakSet()
     # NOTE: op should be read only after construction of LazyBuffer. it is now with schedule
     if op is not None:
       self.op: LazyOp = op
       for x in op.buffers: x.children.add(self)
     assert optype != MovementOps or (base is not None and base.optype != MovementOps), "MovementOps must be based"
     self._base = base
-    if base: base.views.add(self)
-    else: assert st.contiguous, "unbased LazyBuffers must be contiguous"
+    # if base: base.views.add(self)
+    # else: assert st.contiguous, "unbased LazyBuffers must be contiguous"
     if not LAZY: self.realize()
 
   @property
@@ -393,7 +393,7 @@ def run_schedule(schedule:List[Tuple[LazyOp, LazyBuffer, Tuple[LazyBuffer, ...]]
     else:
       out.realized = Device[out.device].exec_ast(op, output=out, inputs=[x.realized for x in buffers], var_vals=out.var_vals, **out._device_extra_args())
       del out.op
-      for v in out.views: del v.op
+      # for v in out.views: del v.op
     assert out.realized and isinstance(out.realized, Device[out.device].buffer), f"device mismatch on realized got {type(out.realized)} expected {out.device}"
     assert out.realized.dtype == out.dtype, "realized dtype is incorrect"
 
