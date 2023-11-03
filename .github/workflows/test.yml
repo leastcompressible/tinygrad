@@ -82,7 +82,7 @@ jobs:
     - name: Install Dependencies
       run: pip install -e '.[testing]' --extra-index-url https://download.pytorch.org/whl/cpu
     - name: Run Pytest
-      run: python -m pytest -n=auto test/ -k "not (test_efficientnet and models/test_train.py)" --durations=20
+      run: NOOPT=1 python -m pytest -n=auto test/ -k "not (test_efficientnet and models/test_train.py)" --durations=20
     - name: Compile EfficientNet to C
       run: PYTHONPATH="." CLANG=1 python examples/compile_efficientnet.py > recognize.c
     - name: Compile C to native
@@ -110,7 +110,7 @@ jobs:
     - name: Install Dependencies
       run: pip install -e '.[testing]' --extra-index-url https://download.pytorch.org/whl/cpu
     - name: Run Pytest
-      run: TORCH=1 python -m pytest -n=auto test/ --durations=20
+      run: NOOPT=1 TORCH=1 python -m pytest -n=auto test/ --durations=20
     - name: Run ONNX
       run: TORCH=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py
 
