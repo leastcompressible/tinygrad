@@ -295,6 +295,8 @@ class Kernel:
   def limit_dims_to_max(self, global_max: List[int], local_max: List[int]):
     # Check the global allocation limit, current the global_size will be flipped during codegen
     # and then padded right with 1s if its length < 3 which makes this part a bit awkward to write
+    print(f"{self.full_shape=}, {self.global_dims=}, {self.local_dims=}, {self.first_reduce=}")
+    print(self.colored_shape())
     global_dims = self.first_reduce-self.local_dims
     if global_dims > 0:
       if global_max:
@@ -302,7 +304,7 @@ class Kernel:
         if max(global_max) < max(self.full_shape[:global_dims]): self.reshape_and_permute(lambda x: self._limit_size(x, tmp + [math.inf] * (len(self.full_shape)-len(tmp))), None)
         assert max(global_max) >= max(self.full_shape[:global_dims]), f"device max allocation {max(self.full_shape[:global_dims])} exceeds global dim maximum {max(global_max)}"
       for i in range(global_dims-1):
-        if i < len(global_max) and self.full_shape[i] > global_max[i]:
+        if self.full_shape[i] > global_max[i]:
           order = list(range(len(self.full_shape)))
           order[i], order[global_dims-1] = order[global_dims-1], order[i]
           self.reshape_and_permute(None, order)
