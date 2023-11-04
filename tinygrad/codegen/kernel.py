@@ -309,7 +309,9 @@ class Kernel:
             self.reshape_and_permute(None, order)
             if DEBUG >= 3: print("permuted global dim", order, "due to allocation exceeds global limit")
         except IndexError:
-          break
+          print(f"{self.full_shape=}, {global_max=}, {i=}")
+          raise IndexError
+          # break
 
   def alias_buffer(self, i, pattern):
     assert len(pattern) == len(self.sts[i].shape), f"must include a pattern for each shape {pattern} {self.sts[i].shape}"
