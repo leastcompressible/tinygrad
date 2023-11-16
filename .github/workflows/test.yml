@@ -319,7 +319,7 @@ jobs:
           git checkout 18401f4245b27ca4b3af433196583cc81ef84480
           mkdir build
           cd build
-          cmake .. -Wno-dev -G Ninja -DOCELOT_BUILD_TOOLS=OFF -DCMAKE_BUILD_ALWAYS=0
+          cmake .. -Wno-dev -G Ninja -DOCELOT_BUILD_TOOLS=OFF
           ninja
       - name: Install gpuocelot
         if: matrix.backend == 'cuda' || matrix.backend == 'ptx' || matrix.backend == 'triton'
