@@ -137,7 +137,8 @@ class ShapeTracker:
       if any(s != 1 and st == 0 for s,st in zip(real_shape, v.strides)): to_apply.append((MovementOps.EXPAND, real_shape))
       # lastly, we apply post expand pads
       if v.mask is not None and any(x != (0,0) for x in post_expand_pads): to_apply.append((MovementOps.PAD, post_expand_pads))
-    return to_apply
+    # dedup identical consecutive mops
+    return [a for a, b in zip(to_apply, to_apply[1:] + [None]) if a != b]
 
   # NOTE: if a stride is not always valid, it will be None
   def real_strides(self, ignore_valid=False) -> Tuple[Optional[sint], ...]:
