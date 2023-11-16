@@ -138,6 +138,7 @@ class ShapeTracker:
       # lastly, we apply post expand pads
       if v.mask is not None and any(x != (0,0) for x in post_expand_pads): to_apply.append((MovementOps.PAD, post_expand_pads))
     # dedup identical consecutive mops
+    # how does this work for non-idempotent ops???
     return [a for a, b in zip(to_apply, to_apply[1:] + [None]) if a != b]
 
   # NOTE: if a stride is not always valid, it will be None
