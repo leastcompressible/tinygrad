@@ -1,11 +1,12 @@
 from typing import Dict, List, cast, DefaultDict, Optional, Tuple, Callable
 import itertools, random, math
+from collections import defaultdict
 from tinygrad.lazy import vars_from_ast
 from tinygrad.ops import Device, Compiled, MemBuffer
 from tinygrad.helpers import prod, ImageDType, flatten, DEBUG, CACHELEVEL, diskcache_get, diskcache_put, getenv, Context, all_int
 from tinygrad.codegen.linearizer import Linearizer, UOp
+from tinygrad.codegen.kernel import InvalidOptException
 from tinygrad.runtime.lib import RawBuffer
-from collections import defaultdict
 from tinygrad.tensor import Tensor
 
 from tinygrad.codegen.kernel import Opt, OptOps
@@ -96,7 +97,7 @@ def get_linearizer_actions(lin:Linearizer, include_0=True) -> Dict[int, Lineariz
         if c in {"cyan", "green", "white"}: lcl *= s
       if up > 256 or lcl > 256: continue
       acted_lins[i+1] = lin2
-    except Exception:
+    except InvalidOptException:
       pass
   return acted_lins
 

@@ -13,6 +13,8 @@ class OptOps(Enum):
   UPCAST = auto(); UPCASTMID = auto(); UNROLL = auto(); LOCAL = auto(); LASTLOCAL = auto(); GROUP = auto(); GROUPTOP = auto(); NOLOCALS = auto() # noqa: E702
   def __lt__(self, x:OptOps): return self.value < x.value
 
+class InvalidOptException(Exception): pass
+
 @dataclass(frozen=True, order=True)
 class Opt:
   op: OptOps
@@ -392,63 +394,66 @@ class Kernel:
     return False
 
   def apply_opt(self, opt:Opt):
-    assert not self.dont_use_locals or opt.op not in {OptOps.LOCAL, OptOps.LASTLOCAL, OptOps.GROUP, OptOps.GROUPTOP, OptOps.UPCASTMID}, "not using locals"
+    def check(cond, msg):
+      if not cond: raise InvalidOptException(msg)
+    check(not self.dont_use_locals or opt.op not in {OptOps.LOCAL, OptOps.LASTLOCAL, OptOps.GROUP, OptOps.GROUPTOP, OptOps.UPCASTMID}, "not using locals")
     self.applied_opts.append(opt)
     if opt.axis is not None:
       axis = opt.axis + (self.first_reduce if opt.op == OptOps.UNROLL else (self.first_reduce+len(self.group_for_reduce) if opt.op == OptOps.GROUP or opt.op == OptOps.GROUPTOP else 0))
     else:
       axis = -1
     if opt.amt is not None:
+      check(axis < len(self.full_shape), "invalid axis")
       amt = opt.amt if opt.amt != 0 else self.full_shape[axis]
-      assert self.full_shape[axis] % amt == 0, "no longer valid shift"
-      assert isinstance(amt, int) and amt != 1, "shift of amt 1 or Node is meaningless"
+      check(self.full_shape[axis] % amt == 0, "no longer valid shift")
+      check(isinstance(amt, int) and amt != 1, "shift of amt 1 or Node is meaningless")
     else:
       amt = -1
     if opt.op == OptOps.LOCAL:        # cyan
-      assert self.opts.has_local, "target does not support local"
-      assert axis < self.first_reduce, "can't local a reduce"
-      assert not(self.tensor_core), "can't local with tensor cores"
+      check(self.opts.has_local, "target does not support local")
+      check(axis < self.first_reduce, "can't local a reduce")
+      check(not(self.tensor_core), "can't local with tensor cores")
       self.shift_to(axis, amt, insert_before=self.first_reduce)
       self.local_dims += 1
     elif opt.op == OptOps.LASTLOCAL:  # cyan
-      assert self.opts.has_local, "target does not support local"
-      assert axis < self.first_reduce, "can't local a reduce"
+      check(self.opts.has_local, "target does not support local")
+      check(axis < self.first_reduce, "can't local a reduce")
       self.shift_to(axis, amt, insert_before=self.first_reduce-self.local_dims)
       self.local_dims += 1
     elif opt.op == OptOps.GROUP:      # green
-      assert self.opts.has_local and self.opts.has_shared, "target does not support local or shared mem"
-      assert axis >= self.first_reduce + len(self.group_for_reduce) and axis < self.shape_len-self.upcasted, "must be reduce axis to group"
-      assert not(self.tensor_core), "can't group with tensor cores"
+      check(self.opts.has_local and self.opts.has_shared, "target does not support local or shared mem")
+      check(axis >= self.first_reduce + len(self.group_for_reduce) and axis < self.shape_len-self.upcasted, "must be reduce axis to group")
+      check(not(self.tensor_core), "can't group with tensor cores")
       self.shift_to(axis, amt, insert_before=self.first_reduce + len(self.group_for_reduce))
       self.group_for_reduce.append(amt)
     elif opt.op == OptOps.GROUPTOP:   # green
-      assert self.opts.has_local and self.opts.has_shared, "target does not support local or shared mem"
-      assert axis >= self.first_reduce + len(self.group_for_reduce) and axis < self.shape_len-self.upcasted, "must be reduce axis to group"
-      assert not(self.tensor_core), "can't group with tensor cores"
+      check(self.opts.has_local and self.opts.has_shared, "target does not support local or shared mem")
+      check(axis >= self.first_reduce + len(self.group_for_reduce) and axis < self.shape_len-self.upcasted, "must be reduce axis to group")
+      check(not(self.tensor_core), "can't group with tensor cores")
       self.shift_to(axis, amt, top=True, insert_before=self.first_reduce + len(self.group_for_reduce))
       self.group_for_reduce.append(amt)
     elif opt.op == OptOps.UNROLL:     # purple
-      assert axis < self.shape_len-self.upcasted, "can't upcasted already upcasted"
-      assert amt <= 32, "don't unroll more than 32"
+      check(axis < self.shape_len-self.upcasted, "can't upcasted already upcasted")
+      check(amt <= 32, "don't unroll more than 32")
       self.shift_to(axis, amt, insert_before=None)
       self.upcast()
     elif opt.op == OptOps.UPCAST:     # yellow
-      assert axis < self.first_reduce, "upcast is for non-reduce"
-      assert amt <= 8, "don't upcast more than 8"
+      check(axis < self.first_reduce, "upcast is for non-reduce")
+      check(amt <= 8, "don't upcast more than 8")
       self.shift_to(axis, amt, insert_before=None)
       self.upcast()
     elif opt.op == OptOps.UPCASTMID:  # white
-      assert self.bufs[0].dtype.name.startswith('image') and not self.float4_axis(0) and self.group_for_reduce and self.first_reduce <= 2 and prod(self.sts[0].shape) > 1, "invalid upcast mid reduce"
+      check(self.bufs[0].dtype.name.startswith('image') and not self.float4_axis(0) and self.group_for_reduce and self.first_reduce <= 2 and prod(self.sts[0].shape) > 1, "invalid upcast mid reduce")
       axes = self.sts[0].unit_stride_axes()
-      assert len(axes) == 1, f"wrong number of stride 1 axis : {axes}"
-      assert axes[0] == axis, "wrong axis"
-      assert amt == 4, "don't upcast mid anything but 4"
+      check(len(axes) == 1, f"wrong number of stride 1 axis : {axes}")
+      check(axes[0] == axis, "wrong axis")
+      check(amt == 4, "don't upcast mid anything but 4")
       self.shift_to(axis, amt, insert_before=self.first_reduce + len(self.group_for_reduce))
       self.group_for_reduce.append(amt)
     elif opt.op == OptOps.NOLOCALS:
-      assert self.opts.has_local, "target does not support local, so this optimization is meaningless"
-      assert self.local_dims == 0 and len(self.group_for_reduce) == 0, "can't have no locals with locals"
-      assert not self.dont_use_locals, "already not using locals"
+      check(self.opts.has_local, "target does not support local, so this optimization is meaningless")
+      check(self.local_dims == 0 and len(self.group_for_reduce) == 0, "can't have no locals with locals")
+      check(not self.dont_use_locals, "already not using locals")
       self.dont_use_locals = True
     return self.simplify_ones()
 
