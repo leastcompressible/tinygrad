@@ -40,6 +40,13 @@ def get_grouped_dims(prefix, start_dim, local_dims, maxdim:int=0):
     local_idxs = local_idxs[0:maxdim-1] + nli[::-1]
   return local_idxs, [x for x in loop_local_idxs if not isinstance(x, NumNode)]
 
+# expand a Node into List[Node] that enumerates the underlying Variables from min to max
+# expand increments earlier variables faster than later variables (as specified in the argument)
+@functools.lru_cache(maxsize=None)
+def expand_node(node: Node, idxs:Optional[Tuple[VariableOrNum, ...]]=None) -> List[Node]:
+  if idxs is None: idxs = (node.expand_idx(),)
+  return [node.substitute(dict(zip(idxs, (NumNode(x) for x in rep)))) for rep in Node.iter_idxs(idxs)]
+
 class Linearizer(Kernel):
   def uop_alu_idx(self, a:UOp, b, ops, ctx:Linearizer, op, dtype=dtypes.int32):
     render_b:UOp = cast(UOp, (NumNode(b) if not isinstance(b, Node) else b).render(ops, ctx))
@@ -64,7 +71,7 @@ class Linearizer(Kernel):
 
     amt, dim = 1, None
     upcast_dim = self.get_upcast_dim(i)
-    if len(upcast_dim) == 1 and len(float4_expand := idxs[upcast_dim[0]].expand()) in [4,2]:
+    if len(upcast_dim) == 1 and len(float4_expand := expand_node(idxs[upcast_dim[0]])) in [4,2]:
       dim, amt = upcast_dim[0], len(float4_expand)
 
     expand_vars = tuple([rename_var(idx.expand_idx(), f"_uidx{j}") for j, idx in enumerate(idxs)])
@@ -77,7 +84,7 @@ class Linearizer(Kernel):
       g_idx, g_valid = self.sts[i].expr_idxs(fake_idxs)
     localtype = dtypes.float32 if amt == 1 else dtypes._float4 if amt == 4 else dtypes._float2
 
-    e_idxs, e_valids = g_idx.expand(expand_vars), g_valid.expand(expand_vars)
+    e_idxs, e_valids = expand_node(g_idx, expand_vars), expand_node(g_valid, expand_vars)
 
     ret = []
     invalid_value = 0 if dtypes.is_int(buf.dtype) else 0.0
@@ -115,7 +122,7 @@ class Linearizer(Kernel):
     buf_uop = self.buf_uops[i]
     assert buf_uop is not None, f"buffer {i} wasn't UOped"
 
-    expanded_nodes = [idx.expand() for idx in idxs]
+    expanded_nodes = [expand_node(idx) for idx in idxs]
     _idxs = [x[::-1] for x in itertools.product(*expanded_nodes[::-1])]
     store_offset = dict(zip(_idxs, store))
 
