@@ -320,13 +320,13 @@ class Compiled:
     # TODO: this is pretty wrong actually, who knows where else this buffer is used?
     # TODO: what if an assign is required? this silently is wrong
     output.realized = output.output_buffer
-    if output.realized is not None:
-      for i,a in enumerate(inputs):
-        # TODO: if this is contiguous it's fine
-        if a.realized == output.realized:
-          if any(not x.arg.st.contiguous for x in ast.get_lazyops() if x.op == BufferOps.MEM and x.arg.idx == i+1):
-            output.realized = None
-            break
+    # if output.realized is not None:
+    #   for i,a in enumerate(inputs):
+    #     # TODO: if this is contiguous it's fine
+    #     if a.realized == output.realized:
+    #       if any(not x.arg.st.contiguous for x in ast.get_lazyops() if x.op == BufferOps.MEM and x.arg.idx == i+1):
+    #         output.realized = None
+    #         break
 
     # we don't have an output buffer, we have to create it, and create to max size if it has symbolic shape
     if output.realized is None:
