@@ -28,7 +28,7 @@ class TestLinearizerFailures(unittest.TestCase):
   @unittest.skipUnless(Device.DEFAULT in ["CPU", "TORCH", "CLANG", "METAL", "GPU", "LLVM"], "fails on these backends")
   def test_failure_1(self):
     ast = LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=ReduceOps.SUM, src=(LazyOp(op=BufferOps.MEM, src=(), arg=MemBuffer(idx=1, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(32, 16, 16), strides=(16, 1, 0), offset=0, mask=None, contiguous=False),)))),), arg=(32, 16, 1)), LazyOp(op=BufferOps.MEM, src=(), arg=MemBuffer(idx=2, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(32, 16, 1), strides=(0, 1, 0), offset=0, mask=None, contiguous=False),))))), arg=None), LazyOp(op=BufferOps.MEM, src=(), arg=MemBuffer(idx=1, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(32, 16, 1), strides=(16, 1, 0), offset=0, mask=None, contiguous=True),))))), arg=None)
-    assert helper_test_lin(Linearizer(ast), [], fixed_platforms=["CPU", "TORCH", "METAL", "GPU", "LLVM"])
+    assert helper_test_lin(Linearizer(ast), [], fixed_platforms=["CPU", "TORCH", "CLANG", "METAL", "GPU", "LLVM"])
 
   # NOTE: test cases from fuzzer run. if you fixed something and it no longer fails, add platform to fixed_platforms list in helper_test_lin().
 
