@@ -26,6 +26,9 @@ device = Device[Device.DEFAULT]
 pos = Variable("pos", 1, 10).bind(5)
 unbound_pos, val = pos.unbind()
 
+# it only works if output is contiguous
+# TODO: assert this in the setitem assign
+# technically it's that the part you are assigning is real
 a = Tensor.rand(10, val).pad((None, (0, 10-val))).contiguous().realize()
 b = Tensor.arange(100).reshape(10, 10).realize()
 
