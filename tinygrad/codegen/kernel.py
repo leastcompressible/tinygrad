@@ -345,6 +345,9 @@ class Kernel:
         axis_buf0 = [(i,self.full_shape[i],buf1_strides[i]) for i,s in enumerate(buf0_strides[:self.first_reduce]) if s == 0 and self.full_shape[i]%tc.dims[0] == 0]
         axis_buf1 = [(i,self.full_shape[i],buf0_strides[i]) for i,s in enumerate(buf1_strides[:self.first_reduce]) if s == 0 and self.full_shape[i]%tc.dims[1] == 0]
 
+        if self.full_shape[self.first_reduce]%tc.dims[2] != 0:
+          try: self.apply_opt(Opt(OptOps.PADTO, self.first_reduce, tc.dims[2]))
+          except AssertionError: continue
         if not(axis_buf0 and axis_buf1 and self.full_shape[self.first_reduce]%tc.dims[2] == 0 and self.full_shape[self.first_reduce] >= tc.dims[2] and (self.shape_len-self.first_reduce) == 1): continue
 
         if DEBUG >= 3: print("TENSOR CORES", axis_buf0, axis_buf1, tc)
