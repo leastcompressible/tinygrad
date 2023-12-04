@@ -35,16 +35,15 @@ class Attention:
 
     # create kv cache
     if not hasattr(self, "cache_kv"):
-      self.cache_kv = Tensor.zeros(2, bsz, MAX_CONTEXT, self.n_heads, self.head_dim)
-      if HALF:
-        self.cache_kv = self.cache_kv.half()
-
-    keys = self.cache_kv[0].shrink((None, (0, start_pos), None, None)).cat(xk, dim=1)
-    values = self.cache_kv[1].shrink((None, (0, start_pos), None, None)).cat(xv, dim=1)
+      self.cache_kv = Tensor.zeros(2, bsz, MAX_CONTEXT, self.n_heads, self.head_dim, dtype=dtypes.half if HALF else dtypes.float).contiguous().realize()
 
     # update the cache
-    new_cache = Tensor.stack([keys, values]).pad((None, None,(0,MAX_CONTEXT-start_pos-seqlen),None,None)).contiguous()
-    self.cache_kv.assign(new_cache).realize()
+    st = self.cache_kv.lazydata.st
+    st = st.shrink(((0, st.shape[0]), (0, st.shape[1]), (start_pos, start_pos+seqlen), (0, st.shape[3]), (0, st.shape[4])))
+    self.cache_kv.copy_with_st(Tensor.stack([xk, xv]), st).realize()
+
+    keys = self.cache_kv[0].shrink((None, (0, start_pos+seqlen), None, None))
+    values = self.cache_kv[1].shrink((None, (0, start_pos+seqlen), None, None))
 
     xq, keys, values = xq.transpose(1, 2), keys.transpose(1, 2), values.transpose(1, 2)
     return self.c_proj(xq.scaled_dot_product_attention(keys, values, mask).cast(dtypes.float32).transpose(1, 2).reshape(bsz, seqlen, -1))
