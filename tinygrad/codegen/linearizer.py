@@ -423,8 +423,7 @@ class Linearizer(Kernel):
             changed_something = True
 
     # (recursively) remove childless uops
-    # NOTE: DEFINE_GLOBAL should be removable, but we'd have to propagate that
-    UOPS_W_SIDE_EFFECTS = {UOps.STORE, UOps.BARRIER, UOps.DEFINE_GLOBAL}
+    UOPS_W_SIDE_EFFECTS = {UOps.STORE, UOps.BARRIER}
     while 1:
       has_child: Set[UOp] = set()
       for ru in self.uops:
