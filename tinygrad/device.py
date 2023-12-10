@@ -1,11 +1,12 @@
 from __future__ import annotations
 import numpy as np
 from collections import defaultdict
-from typing import TYPE_CHECKING, Union, Any, List, Optional, Dict, Callable
+from typing import TYPE_CHECKING, Union, Any, List, Optional, Dict, Callable, cast
 import importlib, inspect, functools, pathlib, time, re, ctypes
 from tinygrad.helpers import ansilen, DEBUG, getenv, GlobalCounters, colored, BEAM, NOOPT, all_int, to_function_name, DType, from_mv, dtypes, flat_mv, ImageDType
 from tinygrad.shape.symbolic import Variable, sym_infer, sint
-from tinygrad.ops import LazyOp, TernaryOps, get_lazyop_info, ReduceOps, BufferOps, BinaryOps, UnaryOps, Op, vars_from_ast
+from tinygrad.shape.shapetracker import ShapeTracker
+from tinygrad.ops import LazyOp, TernaryOps, get_lazyop_info, ReduceOps, BufferOps, BinaryOps, UnaryOps, Op, MovementOps, vars_from_ast
 
 if TYPE_CHECKING:
   from tinygrad.codegen.linearizer import Linearizer
@@ -222,8 +223,23 @@ def _get_interpreted_fxn(fxn_for_op:Dict[Op, Callable], ast:LazyOp) -> Interpret
     lines.append(f"  {ret} = {tmp}")
     return ret
 
+  assert ast.op is BufferOps.STORE
+  st = cast(ShapeTracker, ast.arg.st)
+  assert len(st.views) == 1
+  view = st.views[0]
   ret = _interpret_ast(ast)
-  src = '\n'.join(['def run(inputs, var_vals):'] + lines + [f"  return {ret}"])
+  if view.shape != get_lazyop_info(ast).shape or not view.contiguous:
+    print(f"{view.shape=}, {view.strides=}, {view.offset=}")
+    lines.append(f"  print(type(inputs[0]))")
+    lines.append(f"  print(inputs[0])")
+    lines.append(f"  print({ret})")
+    lines.append(f"  inputs[0] = inputs[0].contiguous()")
+    lines.append(f"  MovementOps_AS_STRIDED(inputs[0], ({view.shape}, {view.strides}, {view.offset}))[:] = {ret}")
+    lines.append(f"  return inputs[0]")
+  else:
+    lines.append(f"  return {ret}")
+
+  src = '\n'.join(['def run(inputs, var_vals):'] + lines)
   if DEBUG >= 4: print(functools.reduce(lambda x,y: (x.replace(y[0], str(y[1])) if y[0][0:2] == "m0" else x), tglob.items(), src))
   exec(compile(src, "<ast>", "exec"), tglob) # pylint: disable=exec-used
   return InterpretedASTRunner(ast, tglob['run'])

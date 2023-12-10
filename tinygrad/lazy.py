@@ -124,7 +124,7 @@ class LazyBuffer:
   def realized(self): return self.base._realized
   @realized.setter
   def realized(self, val:Buffer):
-    assert self._base is None, "no setting realized of based LazyBuffers"
+    # assert self._base is None, "no setting realized of based LazyBuffers"
     self._realized = val
   @property
   def dtype(self): return self.base._dtype
@@ -226,6 +226,7 @@ class LazyBuffer:
     assert self.st.contiguous and self.realized, "can only copy to contiguous and realized buffer"
     self.output_buffer = self.realized
     self.realized = None
+    print(f"copy_with_st {st=}")
     self.op = LazyOp(BufferOps.STORE, (other,), st)
 
   @staticmethod

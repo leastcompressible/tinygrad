@@ -18,9 +18,9 @@ def match_types(x, y, disallow_bool=False):
 
 def as_strided(x, arg):
   if any(i < 0 for i in arg[1]):
-    return torch.as_strided(x.contiguous(), arg[0], tuple(abs(i) for i in arg[1]),
+    return torch.as_strided(x, arg[0], tuple(abs(i) for i in arg[1]),
       arg[2] + sum((s-1)*a if a < 0 else 0 for (s,a) in zip(arg[0], arg[1]))).flip([i for i,a in enumerate(arg[1]) if a < 0])
-  return torch.as_strided(x.contiguous(), arg[0], arg[1], arg[2])
+  return torch.as_strided(x, arg[0], arg[1], arg[2])
 
 torch_fxn_for_op: Dict[Op, Callable] = {
   # TODO: torch.tensor should work here. it doesn't due to "overflow" in uint8
