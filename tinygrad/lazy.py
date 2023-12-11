@@ -224,7 +224,7 @@ class LazyBuffer:
 
   def cast(self, dtype:DType, bitcast:bool=False): return self.e(UnaryOps.CAST, arg=(dtype, bitcast))
 
-  def to_float(self): return self.cast(dtypes.to_float(self.dtype)) if not dtypes.is_float(self.dtype) else self
+  def to_float(self): return self.cast(self.dtype.to_float()) if not dtypes.is_float(self.dtype) else self
 
   # *** elementwise ops ***
 
