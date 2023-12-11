@@ -168,10 +168,10 @@ class Tensor:
   def full(shape:Tuple[sint, ...], fill_value, **kwargs): return Tensor(fill_value, **kwargs).reshape([1]*len(new_shape := argfix(shape))).expand(new_shape)
 
   @staticmethod
-  def zeros(*shape, **kwargs): return Tensor.full(argfix(*shape), 0, **kwargs)
+  def zeros(*shape, **kwargs): return Tensor.full(argfix(*shape), 0.0, **kwargs)
 
   @staticmethod
-  def ones(*shape, **kwargs): return Tensor.full(argfix(*shape), 1, **kwargs)
+  def ones(*shape, **kwargs): return Tensor.full(argfix(*shape), 1.0, **kwargs)
 
   @staticmethod
   def arange(start, stop=None, step=1, **kwargs):
@@ -250,7 +250,7 @@ class Tensor:
 
     # fill in the first grad with one. don't use Tensor.ones because we don't need contiguous
     # this is "implicit gradient creation"
-    self.grad = Tensor(1, device=self.device, requires_grad=False)
+    self.grad = Tensor(1.0, device=self.device, requires_grad=False)
 
     for t0 in reversed(self.deepwalk()):
       assert (t0.grad is not None)

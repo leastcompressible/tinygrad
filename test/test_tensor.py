@@ -161,7 +161,7 @@ class TestTinygrad(unittest.TestCase):
 
     a = Tensor([1, 2, 3])
     b = Tensor.zeros_like(a, dtype=dtypes.int8)
-    assert a.dtype != b.dtype and a.dtype == dtypes.float32 and b.dtype == dtypes.int8, "a.dtype should be float and b.dtype should be char"
+    assert a.dtype == dtypes.int and b.dtype == dtypes.int8, "a.dtype should be int and b.dtype should be char"
     assert a.shape == b.shape, f"shape mismatch (Tensor.zeros_like){a.shape} != (torch){b.shape}"
 
   def test_ones_like_has_same_dtype_and_shape(self):
@@ -173,7 +173,7 @@ class TestTinygrad(unittest.TestCase):
 
     a = Tensor([1, 2, 3])
     b = Tensor.ones_like(a, dtype=dtypes.int8)
-    assert a.dtype != b.dtype and a.dtype == dtypes.float32 and b.dtype == dtypes.int8, "a.dtype should be float and b.dtype should be char"
+    assert a.dtype == dtypes.int and b.dtype == dtypes.int8, "a.dtype should be int and b.dtype should be char"
     assert a.shape == b.shape, f"shape mismatch (Tensor.ones_like){a.shape} != (torch){b.shape}"
 
   def test_ndim(self):
@@ -240,9 +240,25 @@ class TestTinygrad(unittest.TestCase):
 
   def test_tensor_list_dtype(self):
     arr = [1]
-    assert Tensor(arr).dtype == Tensor.default_type
+    assert Tensor(arr).dtype == dtypes.int32
     assert Tensor(arr, dtype=dtypes.float32).dtype == dtypes.float32
     assert Tensor(arr, dtype=dtypes.float64).dtype == dtypes.float64
+
+    old_default_type = Tensor.default_type
+    for default_type in [dtypes.float32, dtypes.float64]:
+      Tensor.default_type = default_type
+
+      arr_int = [1, 1, 1]
+      assert Tensor(arr_int).dtype == dtypes.int32
+      assert Tensor(arr_int, dtype=dtypes.float32).dtype == dtypes.float32
+      assert Tensor(arr_int, dtype=dtypes.float64).dtype == dtypes.float64
+
+      arr_float = [1.0, 1.1, 1]
+      assert Tensor(arr_float).dtype == Tensor.default_type
+      assert Tensor(arr_float, dtype=dtypes.int32).dtype == dtypes.int32
+      assert Tensor(arr_float, dtype=dtypes.int64).dtype == dtypes.int64
+
+    Tensor.default_type = old_default_type
 
   def test_tensor_copy(self):
     x = copy.deepcopy(Tensor.ones((3,3,3)))
