@@ -190,6 +190,36 @@ class TestEqStrDType(unittest.TestCase):
     self.assertEqual(str(dtypes.imagef((1,2,4))), "dtypes.imagef((1, 2, 4))")
     self.assertEqual(str(PtrDType(dtypes.float32)), "ptr.dtypes.float")
 
+class TestDtypePromotion(unittest.TestCase):
+  def test_creation(self):
+    assert Tensor(1).dtype == dtypes.int32
+    assert Tensor(1, dtype=dtypes.float16).dtype == dtypes.float16
+    assert Tensor(1.0).dtype == Tensor.default_type
+    assert Tensor([1,2,3,4]).dtype == dtypes.int32
+    assert Tensor([1.0,2.0,3.0,4.0]).dtype == Tensor.default_type
+    assert Tensor(float("inf"), dtype=dtypes.uint8).dtype == dtypes.uint8
+
+  def test_to_float(self):
+    # add this with the correct float promotion
+    pass
+
+  @given(st.sampled_from([d for d in DTYPES_DICT.values() if d not in [dtypes.bfloat16, dtypes._arg_int32]]))
+  def test_unary_same_dtype(self, dtype):
+    assert Tensor([1,2,3], dtype=dtype).neg().dtype == dtype
+    assert Tensor([1,2,3], dtype=dtype).square().dtype == dtype
+
+  def test_unary_to_float(self):
+    assert Tensor([1,2,3]).exp().dtype == dtypes.float32
+    np.testing.assert_allclose(Tensor([1,2,3]).exp().numpy(), np.exp(np.array([1,2,3])))
+    assert Tensor([1,2,3]).sin().dtype == dtypes.float32
+    np.testing.assert_allclose(Tensor([1,2,3]).sin().numpy(), np.sin(np.array([1,2,3])), rtol=1e-5, atol=1e-5)
+
+  def test_binary_promotion(self):
+    pass
+
+  def test_ternary_promotion(self):
+    pass
+
 class TestHelpers(unittest.TestCase):
   signed_ints = (dtypes.int8, dtypes.int16, dtypes.int32, dtypes.int64)
   uints = (dtypes.uint8, dtypes.uint16, dtypes.uint32, dtypes.uint64)
