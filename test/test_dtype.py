@@ -214,8 +214,14 @@ class TestDtypePromotion(unittest.TestCase):
     assert Tensor([1,2,3]).sin().dtype == dtypes.float32
     np.testing.assert_allclose(Tensor([1,2,3]).sin().numpy(), np.sin(np.array([1,2,3])), rtol=1e-5, atol=1e-5)
 
-  def test_binary_promotion(self):
-    pass
+  @given(st.sampled_from([d for d in DTYPES_DICT.values() if d not in [dtypes.bfloat16, dtypes._arg_int32]]))
+  def test_binary_same_dtype(self, dtype):
+    assert (Tensor([1,2,3], dtype=dtype) + Tensor([1,2,3], dtype=dtype)).dtype == dtype
+
+  def test_binary_to_least_upper(self):
+    t = Tensor([1,2,3]) + 0.5
+    assert t.dtype == dtypes.float32
+    np.testing.assert_allclose(t.numpy(), np.array([1,2,3])+0.5)
 
   def test_ternary_promotion(self):
     pass

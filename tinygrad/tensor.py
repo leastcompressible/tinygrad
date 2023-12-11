@@ -642,14 +642,15 @@ class Tensor:
     def fix(x:Tensor): return x.reshape(*ret.shape[0:-2], ret.shape[-2] * ret.shape[-1])[..., -self.shape[axis]:].transpose(axis,-1)
     return fix(ret) + fix(base_add)
 
+  # TODO: this should be casted into bool
   @staticmethod
-  def _tri(r:int, c:int, k:int=0, **kwargs) -> Tensor: return Tensor.arange(r, **kwargs).unsqueeze(1).expand(r,c) <= Tensor.arange(-k, c-k, **kwargs).unsqueeze(0).expand(r,c)
+  def _tri(r:int, c:int, k:int=0, **kwargs) -> Tensor: return (Tensor.arange(r, **kwargs).unsqueeze(1).expand(r,c) <= Tensor.arange(-k, c-k, **kwargs).unsqueeze(0).expand(r,c)).cast(dtypes.bool)
   def triu(self, k:int=0) -> Tensor:
     assert all_int(self.shape), f"does not support symbolic shape {self.shape}"
-    return Tensor._tri(self.shape[-2], self.shape[-1], k=k, dtype=self.dtype, device=self.device).where(self, Tensor.zeros_like(self))
+    return Tensor._tri(self.shape[-2], self.shape[-1], k=k, dtype=self.dtype, device=self.device).where(self, Tensor.zeros_like(self, dtype=self.dtype))
   def tril(self, k:int=0) -> Tensor:
     assert all_int(self.shape), f"does not support symbolic shape {self.shape}"
-    return Tensor._tri(self.shape[-2], self.shape[-1], k=k+1, dtype=self.dtype, device=self.device).where(Tensor.zeros_like(self), self)
+    return Tensor._tri(self.shape[-2], self.shape[-1], k=k+1, dtype=self.dtype, device=self.device).where(Tensor.zeros_like(self, dtype=self.dtype), self)
 
   # ***** mlops (unary) *****
 
@@ -704,8 +705,9 @@ class Tensor:
 
   # ***** broadcasted binary mlops *****
 
+  # TODO: y can be int
   def _broadcasted(self, y:Union[Tensor, float], reverse:bool=False) -> Tuple[Tensor, Tensor]:
-    x: Tensor = self
+    x: Tensor = self.cast(Tensor.default_type) if isinstance(y, float) or (isinstance(y, Tensor) and dtypes.is_float(y.dtype)) else self
     if not isinstance(y, Tensor):
       if 0 in x.shape: return x, x.full_like(y)
       y = Tensor(y, device=self.device, requires_grad=False, dtype=self.dtype if self.dtype != dtypes.bool and self.dtype.__class__ is not ImageDType else dtypes.float32)
@@ -722,10 +724,12 @@ class Tensor:
     if yshape != shape_ret: y = y.expand(shape_ret)
     return (x, y)
 
+  # TODO: update this to to_upper_least and get the output type based on self.dtype and x.dtype
   def _to_float(self, x:Union[Tensor, float]):
     return x.lazydata.base.op.arg if isinstance(x, Tensor) and x.lazydata.is_unrealized_contiguous_const() \
       and not x.requires_grad and self._broadcasted(x)[0].shape == self.shape else x
 
+  # TODO: fix the type, x can be int
   def add(self, x:Union[Tensor, float], reverse=False) -> Tensor:
     x = self._to_float(x)
     return mlops.Add.apply(*self._broadcasted(x, reverse)) if x.__class__ is Tensor or x else self
