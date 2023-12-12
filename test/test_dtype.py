@@ -283,7 +283,8 @@ class TestTypePromotion(unittest.TestCase):
 
     t = Tensor([1,2,3], dtype=dtypes.float16).cast(dtypes.bfloat16) + Tensor([1,2,3], dtype=dtypes.float16)
     assert t.dtype == dtypes.float32, t.dtype
-    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+    if is_dtype_supported(dtypes.bfloat16):
+      np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
 
 if __name__ == '__main__':
