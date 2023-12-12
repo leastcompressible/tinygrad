@@ -68,11 +68,8 @@ class TestDType(unittest.TestCase):
   ))
 
   def test_same_size_ops(self):
-    def get_target_dtype(dtype):
-      if any([dtypes.is_float(dtype), dtypes.is_float(self.DTYPE)]): return max([dtype, self.DTYPE], key=lambda x: x.priority)
-      return dtype if dtypes.is_unsigned(dtype) else self.DTYPE
     list(map(
-      lambda dtype: _test_ops(a_dtype=self.DTYPE, b_dtype=dtype, target_dtype=get_target_dtype(dtype)) if dtype.itemsize == self.DTYPE.itemsize else None,
+      lambda dtype: _test_ops(a_dtype=self.DTYPE, b_dtype=dtype, target_dtype=least_upper_dtype(self.DTYPE, dtype)) if dtype.itemsize == self.DTYPE.itemsize else None,
       get_available_cast_dtypes(self.DTYPE)
     ))
   def test_upcast_ops(self): list(map(
@@ -94,7 +91,7 @@ class TestDType(unittest.TestCase):
 def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   if not is_dtype_supported(a_dtype) or not is_dtype_supported(b_dtype): return
   if a_dtype == dtypes.bool or b_dtype == dtypes.bool: return
-  target_dtype = target_dtype or (max([a_dtype, b_dtype], key=lambda x: x.priority) if a_dtype.priority != b_dtype.priority else max([a_dtype, b_dtype], key=lambda x: x.itemsize))
+  target_dtype = target_dtype or least_upper_dtype(a_dtype, b_dtype)
   _assert_eq(Tensor([1,2,3,4], dtype=a_dtype)+Tensor([1,2,3,4], dtype=b_dtype), target_dtype, [2,4,6,8])
   _assert_eq(Tensor([1,2,3,4], dtype=a_dtype)*Tensor([1,2,3,4], dtype=b_dtype), target_dtype, [1,4,9,16])
   _assert_eq(Tensor([[1,2],[3,4]], dtype=a_dtype)@Tensor.eye(2, dtype=b_dtype), target_dtype, [[1,2],[3,4]])
@@ -266,6 +263,27 @@ class TestTypePromotion(unittest.TestCase):
     assert least_upper_dtype(dtypes.bool, dtypes.float64) == dtypes.float64
     assert least_upper_dtype(dtypes.float16, dtypes.int64) == dtypes.float16
     assert least_upper_dtype(dtypes.float16, dtypes.uint64) == dtypes.float16
+
+  def test_broadcast_promo(self):
+    t = Tensor([1,2,3], dtype=dtypes.int16) + Tensor([1,2,3], dtype=dtypes.uint16)
+    assert t.dtype == dtypes.int32, t.dtype
+    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+
+    t = Tensor([1,2,3], dtype=dtypes.int8) + Tensor([1,2,3], dtype=dtypes.uint8)
+    assert t.dtype == dtypes.int16, t.dtype
+    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+
+    t = Tensor([1,2,3], dtype=dtypes.int16) + Tensor([1,2,3], dtype=dtypes.float16)
+    assert t.dtype == dtypes.float16, t.dtype
+    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+
+    t = Tensor([1,2,3], dtype=dtypes.int64) + Tensor([1,2,3], dtype=dtypes.float16)
+    assert t.dtype == dtypes.float16, t.dtype
+    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+
+    t = Tensor([1,2,3], dtype=dtypes.float16).cast(dtypes.bfloat16) + Tensor([1,2,3], dtype=dtypes.float16)
+    assert t.dtype == dtypes.float32, t.dtype
+    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
 
 if __name__ == '__main__':
