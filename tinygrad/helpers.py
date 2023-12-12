@@ -114,8 +114,7 @@ class DType(NamedTuple):
     assert sz > 1 and self.sz == 1, f"can't vectorize {self} with size {sz}"
     return DType(self.priority, self.itemsize*sz, f"{INVERSE_DTYPES_DICT[self]}{str(sz)}", None, sz)
   def scalar(self): return DTYPES_DICT[self.name[:-len(str(self.sz))]] if self.sz > 1 else self
-  # TODO: use the correct float promotion
-  def to_float(self): return dtypes.float32
+  def to_float(self): return least_upper_dtype(dtypes.float32, self)
 
 # dependent typing?
 class ImageDType(DType):
