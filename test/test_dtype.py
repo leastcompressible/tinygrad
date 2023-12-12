@@ -275,7 +275,8 @@ class TestTypePromotion(unittest.TestCase):
 
     t = Tensor([1,2,3], dtype=dtypes.int8) + Tensor([1,2,3], dtype=dtypes.uint8)
     assert t.dtype == dtypes.int16, t.dtype
-    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+    if is_dtype_supported(dtypes.uint8):
+      np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
     t = Tensor([1,2,3], dtype=dtypes.int16) + Tensor([1,2,3], dtype=dtypes.float16)
     assert t.dtype == dtypes.float16, t.dtype
