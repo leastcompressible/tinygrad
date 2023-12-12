@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from tinygrad.helpers import CI, DTYPES_DICT, getenv, DType, DEBUG, ImageDType, PtrDType, OSX, temp, least_upper_dtype
+from tinygrad.helpers import CI, DTYPES_DICT, getenv, DType, DEBUG, ImageDType, PtrDType, OSX, temp, least_upper_dtype, resolve_scalar_dtype
 from tinygrad import Device
 from tinygrad.tensor import Tensor, dtypes
 from typing import Any, List
@@ -67,11 +67,8 @@ class TestDType(unittest.TestCase):
   ))
 
   def test_same_size_ops(self):
-    def get_target_dtype(dtype):
-      if any([dtypes.is_float(dtype), dtypes.is_float(self.DTYPE)]): return max([dtype, self.DTYPE], key=lambda x: x.priority)
-      return dtype if dtypes.is_unsigned(dtype) else self.DTYPE
     list(map(
-      lambda dtype: _test_ops(a_dtype=self.DTYPE, b_dtype=dtype, target_dtype=get_target_dtype(dtype)) if dtype.itemsize == self.DTYPE.itemsize else None,
+      lambda dtype: _test_ops(a_dtype=self.DTYPE, b_dtype=dtype, target_dtype=least_upper_dtype(self.DTYPE, dtype)) if dtype.itemsize == self.DTYPE.itemsize else None,
       get_available_cast_dtypes(self.DTYPE)
     ))
   def test_upcast_ops(self): list(map(
@@ -93,7 +90,7 @@ class TestDType(unittest.TestCase):
 def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   if not is_dtype_supported(a_dtype) or not is_dtype_supported(b_dtype): return
   if a_dtype == dtypes.bool or b_dtype == dtypes.bool: return
-  target_dtype = target_dtype or (max([a_dtype, b_dtype], key=lambda x: x.priority) if a_dtype.priority != b_dtype.priority else max([a_dtype, b_dtype], key=lambda x: x.itemsize))
+  target_dtype = target_dtype or resolve_scalar_dtype(least_upper_dtype(a_dtype, b_dtype), Tensor.default_type)
   _assert_eq(Tensor([1,2,3,4], dtype=a_dtype)+Tensor([1,2,3,4], dtype=b_dtype), target_dtype, [2,4,6,8])
   _assert_eq(Tensor([1,2,3,4], dtype=a_dtype)*Tensor([1,2,3,4], dtype=b_dtype), target_dtype, [1,4,9,16])
   _assert_eq(Tensor([[1,2],[3,4]], dtype=a_dtype)@Tensor.eye(2, dtype=b_dtype), target_dtype, [[1,2],[3,4]])
@@ -220,18 +217,20 @@ class TestHelpers(unittest.TestCase):
 
 class TestTypeSpec(unittest.TestCase):
   def test_creation(self):
-    assert Tensor([]).dtype == Tensor.default_type
+    # assert Tensor(1).dtype == dtypes._int_scalar
+    assert Tensor(1.1).dtype == dtypes._float_scalar
+    assert Tensor([]).dtype == dtypes.float
     # assert Tensor([1]).dtype == dtypes.int
-    assert Tensor([1.1]).dtype == Tensor.default_type
+    assert Tensor([1.1]).dtype == dtypes.float
 
   def test_const_full(self):
-    assert Tensor.ones([2,3]).dtype == Tensor.default_type
-    assert Tensor.zeros([2,3]).dtype == Tensor.default_type
-    assert Tensor.full([2,3], 3.3).dtype == Tensor.default_type
-    # assert Tensor.full([2,3], 3).dtype == dtypes.int
+    assert Tensor.ones([2,3]).dtype == dtypes._float_scalar
+    assert Tensor.zeros([2,3]).dtype == dtypes._float_scalar
+    assert Tensor.full([2,3], 3.3).dtype == dtypes._float_scalar
+    # assert Tensor.full([2,3], 3).dtype == dtypes._int_scalar
 
   def test_reduce_0d_default(self):
-    assert Tensor.ones([2,3,0]).sum(2).dtype ==  Tensor.default_type
+    assert Tensor.ones([2,3,0]).sum(2).dtype ==  dtypes._float_scalar
     # assert Tensor.ones([2,3,0], dtype=dtypes.int).sum(2).dtype == dtypes.int
 
 # TODO: better way to write a set of core dtypes?
@@ -249,7 +248,8 @@ class TestTypePromotion(unittest.TestCase):
     assert result >= dtype1 and result >= dtype2
 
   def test_dtype_promo(self):
-    assert least_upper_dtype(dtypes.bool, dtypes.int8) == dtypes.int8
+    assert least_upper_dtype(dtypes.bool, dtypes._int_scalar) == dtypes._int_scalar
+    assert least_upper_dtype(dtypes._int_scalar, dtypes.int8) == dtypes.int8
     assert least_upper_dtype(dtypes.int8, dtypes.uint8) == dtypes.int16
     assert least_upper_dtype(dtypes.uint8, dtypes.int16) == dtypes.int16
     assert least_upper_dtype(dtypes.int16, dtypes.uint16) == dtypes.int32
@@ -257,13 +257,21 @@ class TestTypePromotion(unittest.TestCase):
     assert least_upper_dtype(dtypes.int32, dtypes.uint32) == dtypes.int64
     assert least_upper_dtype(dtypes.uint32, dtypes.int64) == dtypes.int64
     # special!
-    assert least_upper_dtype(dtypes.int64, dtypes.uint64) == dtypes.float_scalar
-    assert least_upper_dtype(dtypes.float_scalar, dtypes.float16) == dtypes.float16
+    assert least_upper_dtype(dtypes.int64, dtypes.uint64) == dtypes._float_scalar
+    assert least_upper_dtype(dtypes._float_scalar, dtypes.float16) == dtypes.float16
     assert least_upper_dtype(dtypes.float16, dtypes.float32) == dtypes.float32
     assert least_upper_dtype(dtypes.float32, dtypes.float64) == dtypes.float64
 
     assert least_upper_dtype(dtypes.bool, dtypes.float32) == dtypes.float32
     assert least_upper_dtype(dtypes.bool, dtypes.float64) == dtypes.float64
+
+class  TestScalarType(unittest.TestCase):
+  t = Tensor.ones(10)
+  assert (Tensor.rand(10, dtype=dtypes.float) + t).dtype == dtypes.float
+  assert (Tensor.rand(10, dtype=dtypes.float16) + t).dtype == dtypes.float16
+  # # these are not true yet because t is _float_scalar
+  # assert (Tensor.randint(dtype=dtypes.int) + t).dtype == dtypes.int
+  # assert (Tensor.randint(dtype=dtypes.int8) + t).dtype == dtypes.int8
 
 
 if __name__ == '__main__':

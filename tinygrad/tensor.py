@@ -7,7 +7,7 @@ from functools import partialmethod, reduce
 from itertools import accumulate
 import numpy as np
 
-from tinygrad.helpers import ImageDType, argfix, make_pair, getenv, IMAGE, DEBUG, flatten, DType, dtypes, prod, all_int, round_up, merge_dicts
+from tinygrad.helpers import ImageDType, argfix, make_pair, getenv, IMAGE, DEBUG, flatten, DType, dtypes, prod, all_int, round_up, merge_dicts, resolve_scalar_dtype, least_upper_dtype
 from tinygrad.lazy import LazyBuffer
 from tinygrad.ops import LoadOps
 from tinygrad.device import Device, Buffer
@@ -60,7 +60,7 @@ class Tensor:
     self._ctx: Optional[Function] = None
     if isinstance(data, LazyBuffer): assert dtype is None or dtype == data.dtype, "dtype doesn't match, and casting isn't supported"
     elif isinstance(data, (int, float)):
-      data = LazyBuffer.loadop(LoadOps.CONST, tuple(), dtype or Tensor.default_type, device, data)
+      data = LazyBuffer.loadop(LoadOps.CONST, tuple(), dtype or dtypes._float_scalar, device, data)
     elif data is None or data.__class__ is list:
       assert dtype is None or dtype.np is not None, f"{dtype} doesn't have a numpy dtype"
       data = LazyBuffer.fromCPU(np.array([] if data is None else data, dtype=(dtype or Tensor.default_type).np))
@@ -130,9 +130,10 @@ class Tensor:
   # TODO: this should import numpy and use .data() to construct the array
   def numpy(self) -> np.ndarray:
     assert all_int(self.shape), f"no numpy if shape is symbolic, {self.shape=}"
-    assert self.dtype.np is not None, f"no numpy dtype for {self.dtype}"
-    if 0 in self.shape: return np.zeros(self.shape, dtype=self.dtype.np)
-    return self.detach().cast(dtypes.from_np(self.dtype.np)).contiguous().to('CPU').realize().lazydata.realized.toCPU().astype(self.dtype.np, copy=True).reshape(self.shape)
+    output_type = resolve_scalar_dtype(self.dtype, Tensor.default_type)
+    assert output_type.np is not None, f"no numpy dtype for {self.dtype}"
+    if 0 in self.shape: return np.zeros(self.shape, dtype=output_type.np)
+    return self.detach().cast(dtypes.from_np(output_type.np)).contiguous().to('CPU').realize().lazydata.realized.toCPU().astype(output_type.np, copy=True).reshape(self.shape)
 
   def to(self, device:Optional[str]) -> Tensor:
     if device is None or device == self.device: return self
@@ -712,6 +713,11 @@ class Tensor:
     if not isinstance(y, Tensor):
       if 0 in x.shape: return x, x.full_like(y)
       y = Tensor(y, device=self.device, requires_grad=False, dtype=self.dtype if self.dtype != dtypes.bool and self.dtype.__class__ is not ImageDType else dtypes.float32)
+
+    dtype = least_upper_dtype(x.dtype, y.dtype)
+    dtype = dtypes.int if dtype == dtypes._int_scalar else Tensor.default_type if dtype == dtypes._float_scalar else dtype
+    x, y = (t.cast(dtype) for t in (x, y))
+
     if reverse: x, y = y, x
     if (xshape:=x.shape) == (yshape:=y.shape): return (x, y)
 
