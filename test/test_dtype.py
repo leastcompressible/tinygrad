@@ -90,6 +90,7 @@ class TestDType(unittest.TestCase):
 
 def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   if not is_dtype_supported(a_dtype) or not is_dtype_supported(b_dtype): return
+  if target_dtype is not None and not is_dtype_supported(target_dtype): return
   if a_dtype == dtypes.bool or b_dtype == dtypes.bool: return
   target_dtype = target_dtype or least_upper_dtype(a_dtype, b_dtype)
   _assert_eq(Tensor([1,2,3,4], dtype=a_dtype)+Tensor([1,2,3,4], dtype=b_dtype), target_dtype, [2,4,6,8])
