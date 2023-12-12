@@ -732,8 +732,9 @@ class Tensor:
       if 0 in x.shape: return x, x.full_like(y)
       y = Tensor(y, device=self.device, requires_grad=False, dtype=self.dtype if self.dtype != dtypes.bool and self.dtype.__class__ is not ImageDType else dtypes.float32)  # noqa: E501
 
-    dtype = least_upper_dtype(x.dtype, y.dtype)
-    x, y = (t.cast(dtype) for t in (x, y))
+    if not isinstance(x.dtype, ImageDType) and not isinstance(y.dtype, ImageDType):
+      dtype = least_upper_dtype(x.dtype, y.dtype)
+      x, y = (t.cast(dtype) for t in (x, y))
 
     if reverse: x, y = y, x
     if (xshape:=x.shape) == (yshape:=y.shape): return (x, y)
