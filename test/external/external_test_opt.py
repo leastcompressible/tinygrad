@@ -95,7 +95,8 @@ class TestInferenceMinKernels(unittest.TestCase):
     model = Transformer(**args_tiny)
     for p in get_parameters(model): p.assign(np.zeros(p.shape, dtype=p.dtype.np))
     inp = Tensor([[1,2,3,4]])
-    with CLCache(100):
+    with CLCache(104):
+      # TODO: there's one cast for each layer that's not folded
       model(inp, 0).realize()
 
 @unittest.skipUnless(Device.DEFAULT == "GPU", "Not Implemented")
