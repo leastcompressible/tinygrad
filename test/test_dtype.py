@@ -22,7 +22,9 @@ def is_dtype_supported(dtype: DType):
     if Device.DEFAULT == "WEBGPU": return False
   return True
 
-def get_available_cast_dtypes(dtype: DType) -> List[DType]: return [v for k, v in DTYPES_DICT.items() if v != dtype and is_dtype_supported(v) and not k.startswith("_")] # dont cast internal dtypes
+def get_available_cast_dtypes(dtype: DType) -> List[DType]:
+  if not is_dtype_supported(dtype): return []
+  return [v for k, v in DTYPES_DICT.items() if v != dtype and is_dtype_supported(v) and not k.startswith("_")] # dont cast internal dtypes
 
 def _test_to_np(a:Tensor, np_dtype, target):
   if DEBUG >= 2: print(a)
@@ -277,15 +279,17 @@ class TestTypePromotion(unittest.TestCase):
 
     t = Tensor([1,2,3], dtype=dtypes.int16) + Tensor([1,2,3], dtype=dtypes.float16)
     assert t.dtype == dtypes.float16, t.dtype
-    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+    if is_dtype_supported(dtypes.float16):
+      np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
     t = Tensor([1,2,3], dtype=dtypes.int64) + Tensor([1,2,3], dtype=dtypes.float16)
     assert t.dtype == dtypes.float16, t.dtype
-    np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
+    if is_dtype_supported(dtypes.float16):
+      np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
     t = Tensor([1,2,3], dtype=dtypes.float16).cast(dtypes.bfloat16) + Tensor([1,2,3], dtype=dtypes.float16)
     assert t.dtype == dtypes.float32, t.dtype
-    if is_dtype_supported(dtypes.bfloat16):
+    if is_dtype_supported(dtypes.bfloat16) and is_dtype_supported(dtypes.float16):
       np.testing.assert_equal(t.numpy(), np.array([2,4,6]))
 
 
