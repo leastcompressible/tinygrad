@@ -8,6 +8,7 @@ from itertools import accumulate
 import numpy as np
 
 from tinygrad.helpers import ImageDType, argfix, make_pair, getenv, IMAGE, DEBUG, flatten, DType, dtypes, prod, all_int, round_up, merge_dicts
+from tinygrad.helpers import least_upper_dtype, least_upper_float
 from tinygrad.lazy import LazyBuffer
 from tinygrad.ops import LoadOps
 from tinygrad.device import Device, Buffer
@@ -729,13 +730,15 @@ class Tensor:
   # ***** broadcasted binary mlops *****
 
   def _broadcasted(self, y:Union[Tensor, float, int], reverse:bool=False) -> Tuple[Tensor, Tensor]:
+    x: Tensor = self
     if not isinstance(y, Tensor):
       # make y a Tensor
       if 0 in self.shape: return self, self.full_like(y)
-      y_dtype = self.dtype if self.dtype != dtypes.bool and self.dtype.__class__ is not ImageDType else dtypes.float32
-      y = Tensor(y, self.device, dtype=y_dtype, requires_grad=False)
+      if isinstance(self.dtype, ImageDType) or dtypes.is_float(x.dtype) or (dtypes.is_int(x.dtype) and isinstance(y,int)) : y_dtype = self.dtype
+      else: y_dtype = dtypes.int32 if isinstance(y, int) else Tensor.default_type
+      y = Tensor(y, self.device, y_dtype, requires_grad=False)
 
-    x: Tensor = self
+    x, y = x.cast(dtype:=least_upper_dtype(x.dtype, y.dtype)), y.cast(dtype)
     if reverse: x, y = y, x
 
     # left pad shape with 1s
