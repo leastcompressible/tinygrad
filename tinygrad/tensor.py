@@ -236,8 +236,8 @@ class Tensor:
     weight = self.unsqueeze(0) if self.ndim == 1 else self
     cdf = (cw := weight.cumsum(1)) / cw[:, -1].unsqueeze(1)
     unif_samples = Tensor.rand(num_samples, cdf.shape[0], 1)
-    indices = (unif_samples.expand((-1, -1, cdf.shape[1])) >= cdf).sum(2).permute((1, 0))
-    return (indices.squeeze(0) if self.ndim == 1 else indices).cast(dtypes.int32)
+    indices = (unif_samples.expand((-1, -1, cdf.shape[1])) >= cdf).cast(dtypes.int32).sum(2).permute((1, 0))
+    return indices.squeeze(0) if self.ndim == 1 else indices
 
   # ***** toposort and backward pass *****
 
@@ -869,7 +869,7 @@ class Tensor:
     loss_mask = Y != ignore_index
     y_counter = Tensor.arange(self.shape[-1], dtype=dtypes.int32, requires_grad=False, device=self.device).unsqueeze(0).expand(Y.numel(), self.shape[-1])  # noqa: E501
     y = ((y_counter == Y.flatten().reshape(-1, 1)).where(-1.0, 0) * loss_mask.reshape(-1, 1)).reshape(*Y.shape, self.shape[-1])
-    return self.log_softmax().mul(y).sum() / loss_mask.sum()
+    return self.log_softmax().mul(y).sum() / loss_mask.cast(dtypes.float32).sum()
 
   # ***** cast ops *****
 
