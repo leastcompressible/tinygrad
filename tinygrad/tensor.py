@@ -398,7 +398,8 @@ class Tensor:
       ret = ret.reshape(*ret.shape[:sum_dim[0]+1], *[1]*max_dim, *ret.shape[sum_dim[0]+1:])
 
       # iteratively eq -> mul -> sum fancy index
-      for a,i,sd in zip(arange, idx, sum_dim): ret = (a==i).mul(ret).sum(sd)
+      # TODO: remove cast once we fixed dtype for bool * float
+      for a,i,sd in zip(arange, idx, sum_dim): ret = (a==i).cast(ret.dtype).mul(ret).sum(sd)
 
       # special permute case
       if tdim[0] != 0 and len(tdim) != 1 and tdim != list(range(tdim[0], tdim[-1]+1)):
