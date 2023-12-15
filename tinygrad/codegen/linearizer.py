@@ -525,7 +525,7 @@ class Linearizer(Kernel):
       ret: List[UOp] = []
       input_acc = acc[:]
       for val, off in zip(zip(*values), cast(List[int], offs)):
-        acc[off] = self.uop(UOps.ALU, vin=val+(acc[off],), arg=ops[x.op])
+        acc[off] = self.uop(UOps.ALU, acc[off].dtype, vin=val+(acc[off],), arg=ops[x.op])
         ret.append(acc[off])
       for off in range(len(acc)):
         if input_acc[off] != acc[off]:

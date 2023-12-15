@@ -8,6 +8,7 @@ from itertools import accumulate
 import numpy as np
 
 from tinygrad.helpers import ImageDType, argfix, make_pair, getenv, IMAGE, DEBUG, flatten, DType, dtypes, prod, all_int, round_up, merge_dicts
+from tinygrad.helpers import least_upper_dtype
 from tinygrad.lazy import LazyBuffer
 from tinygrad.ops import LoadOps
 from tinygrad.device import Device, Buffer
@@ -646,7 +647,7 @@ class Tensor:
     assert self.shape[-1] == w.shape[-min(n2, 2)], f"Input Tensor shapes {self.shape} and {w.shape} cannot be multiplied ({self.shape[-1]} != {w.shape[-min(n2, 2)]})"  # noqa: E501
     x = self.reshape(*self.shape[0:-1], *[1]*min(n1-1, n2-1, 1), self.shape[-1])
     w = w.reshape(*w.shape[0:-2], *[1]*min(n1-1, n2-1, 1), *w.shape[-min(n2, 2):]).transpose(-1, -min(n2, 2))
-    return (x*w).sum(-1)
+    return (xw:=x*w).cast(least_upper_dtype(xw.dtype,dtypes.float32) if dtypes.is_float(xw.dtype) else xw.dtype).sum(-1).cast(xw.dtype)
 
   def _cumsum(self, axis:int=0, _first_zero=False) -> Tensor:
     return self.transpose(axis,-1).pad2d((self.shape[axis]-int(not _first_zero),0))._pool((self.shape[axis],)).sum(-1).transpose(axis,-1)
