@@ -97,6 +97,7 @@ class TestNonFloatUOps(TestUOps):
   def test_cmplt_int32(self): self._test_bop_fxn(BinaryOps.CMPLT, lambda a,b: float(a<b), PtrDType(dtypes.int32))
   @unittest.skipIf(Device.DEFAULT == "WEBGPU", "no bool storage buffer on webgpu")
   def test_mul_bool(self): self._test_bop_fxn(BinaryOps.MUL, lambda a,b: bool(a) and bool(b), PtrDType(dtypes.bool))
+  def test_where_float16(self): self._test_top_fxn(TernaryOps.WHERE, lambda a,b,c: b if a!=0 else c, PtrDType(dtypes.float16))
 
 if __name__ == '__main__':
   unittest.main(verbosity=2)
