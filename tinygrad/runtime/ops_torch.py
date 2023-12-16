@@ -43,7 +43,7 @@ torch_fxn_for_op: Dict[Op, Callable] = {
   MovementOps.PAD: lambda x, padding: torch.nn.functional.pad(x, [item for sublist in padding[::-1] for item in sublist]), # pylint: disable=E1102
   TernaryOps.MULACC: einsum_mulacc(lambda s,a,b: torch.einsum(s, a.float(), b.float()).type(output_type(a,b)),
                                    lambda x: x.stride(), lambda x,s: x.expand(s)),
-  TernaryOps.WHERE: lambda x, y, z: torch.where(x != 0, y, z),
+  TernaryOps.WHERE: lambda x, y, z: torch.where(x, y, z),
 }
 
 class TorchAllocator(Allocator):
