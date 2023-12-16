@@ -326,6 +326,14 @@ class TestAutoCastType(unittest.TestCase):
       a = [2, 3, 4]
       np.testing.assert_allclose(func(Tensor(a, dtype=dtype)).numpy(), func(torch.tensor(a)), rtol=1e-4, atol=1e-4)
 
+  def test_cmp_returns_bool(self):
+    assert (Tensor([1,2,3,4,5]) < 3).dtype == dtypes.bool
+    assert (Tensor([1,2,3,4,5]) <= 3).dtype == dtypes.bool
+    assert (Tensor([1,2,3,4,5]) > 3).dtype == dtypes.bool
+    assert (Tensor([1,2,3,4,5]) >= 3).dtype == dtypes.bool
+    assert (Tensor([1,2,3,4,5]) != 3).dtype == dtypes.bool
+    assert (Tensor([1,2,3,4,5]) == 3).dtype == dtypes.bool
+
   def test_broadcast_float(self):
     assert (Tensor.rand(4, 4, dtype=dtypes.bool) + 2.3).dtype == Tensor.default_type
     assert (Tensor.rand(4, 4, dtype=dtypes.int) + 2.3).dtype == Tensor.default_type

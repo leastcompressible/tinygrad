@@ -234,8 +234,8 @@ class Tensor:
     weight = self.unsqueeze(0) if self.ndim == 1 else self
     cdf = (cw := weight.cumsum(1)) / cw[:, -1].unsqueeze(1)
     unif_samples = Tensor.rand(num_samples, cdf.shape[0], 1)
-    indices = (unif_samples.expand((-1, -1, cdf.shape[1])) >= cdf).sum(2).permute((1, 0))
-    return (indices.squeeze(0) if self.ndim == 1 else indices).cast(dtypes.int32)
+    indices = (unif_samples.expand((-1, -1, cdf.shape[1])) >= cdf).cast(dtypes.int32).sum(2).permute((1, 0))
+    return (indices.squeeze(0) if self.ndim == 1 else indices)
 
   # ***** toposort and backward pass *****
 
@@ -388,7 +388,7 @@ class Tensor:
       # compute sum_dim, arange, and idx
       max_dim = max(i.ndim for i in idx)
       sum_dim = [d if n==0 else d+max_dim-n for n,d in enumerate(tdim)]
-      arange = [Tensor.arange(ret.shape[d], dtype=dtypes.int32, requires_grad=False, device=self.device).reshape(*[1]*sd, ret.shape[d], *[1]*(ret.ndim + max_dim - n - sd - 1)) for n,(sd,d) in enumerate(zip(sum_dim, tdim))]   # noqa: E501
+      arange = [Tensor.arange(ret.shape[d], requires_grad=False, device=self.device).reshape(*[1]*sd, ret.shape[d], *[1]*(ret.ndim + max_dim - n - sd - 1)) for n,(sd,d) in enumerate(zip(sum_dim, tdim))]   # noqa: E501
       first_idx = [idx[0].reshape(*[1]*tdim[0], *[1]*(1 + max_dim - idx[0].ndim), *idx[0].shape, *[1]*(ret.ndim - tdim[0] - 1))]
       rest_idx = [i.reshape(*[1]*tdim[0], *[1]*(max_dim - i.ndim), *i.shape, *[1]*(ret.ndim - tdim[0] - n)) for n,i in enumerate(idx[1:], 1)]
       idx = first_idx + rest_idx
@@ -822,10 +822,10 @@ class Tensor:
 
   def __lt__(self, x) -> Tensor: return mlops.Less.apply(*self._broadcasted(x, False))
   def __gt__(self, x) -> Tensor: return mlops.Less.apply(*self._broadcasted(x, True))
-  def __ge__(self, x) -> Tensor: return 1.0-(self<x)
-  def __le__(self, x) -> Tensor: return 1.0-(self>x)
+  def __ge__(self, x) -> Tensor: return (self<x).neg()
+  def __le__(self, x) -> Tensor: return (self>x).neg()
   def __ne__(self, x) -> Tensor: return (self<x) + (self>x)   # type: ignore[override]
-  def __eq__(self, x) -> Tensor: return 1.0-(self != x)       # type: ignore[override]
+  def __eq__(self, x) -> Tensor: return (self != x).neg()     # type: ignore[override]
 
   # ***** functional nn ops *****
 
