@@ -75,8 +75,8 @@ class TestRealWorld(unittest.TestCase):
     derandomize_model(model)
     @TinyJit
     def test(t): return model(t, 0).realize()
-    # TODO: test first token vs rest properly, also memory test is broken with CacheCollector
-    helper_test("test_llama", lambda: (Tensor([[1,2,3,4]]),), test, 0.27 if CI else 13.5, 181 if CI else 685, all_jitted=True)
+    # TODO: test first token vs rest properly
+    helper_test("test_llama", lambda: (Tensor([[1,2,3,4]]),), test, 0.22 if CI else 14.1, 181 if CI else 685, all_jitted=True)
 
   @unittest.skipIf(Device.DEFAULT in ["LLVM", "GPU"] and CI, "too long on CI LLVM, GPU requires cl_khr_fp16")
   def test_gpt2(self):
