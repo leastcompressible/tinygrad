@@ -128,4 +128,4 @@ class Embedding:
 
   def __call__(self, idx:Tensor) -> Tensor:
     if not hasattr(self, 'vocab_counter'): self.vocab_counter = Tensor.arange(self.vocab_size, requires_grad=False).reshape(1, 1, self.vocab_size)
-    return (self.vocab_counter == idx.unsqueeze(2)).expand(*idx.shape, self.vocab_size) @ self.weight
+    return (self.vocab_counter == idx.unsqueeze(2)).expand(*idx.shape, self.vocab_size).cast(self.weight.dtype) @ self.weight

@@ -36,7 +36,7 @@ class RMSNorm:
     self.weight = Tensor.ones(dim)
 
   def __call__(self, x:Tensor):
-    # TODO: convert to float?
+    x = x.float()
     return (x * (x.pow(2).mean(-1, keepdim=True) + self.eps).rsqrt()) * self.weight
 
 class Attention:
@@ -95,7 +95,7 @@ class TransformerBlock:
     self.ffn_norm = RMSNorm(dim, norm_eps)
 
   def __call__(self, x:Tensor, start_pos:Union[Variable,int], freqs_cis:Tensor, mask:Optional[Tensor]):
-    h = x + self.attention(self.attention_norm(x), start_pos, freqs_cis, mask)
+    h = x + self.attention(self.attention_norm(x).half(), start_pos, freqs_cis, mask)
     return (h + self.feed_forward(self.ffn_norm(h))).realize()
 
 class Transformer:
@@ -105,7 +105,7 @@ class Transformer:
     self.tok_embeddings = nn.Embedding(vocab_size, dim)
     self.output = linear(dim, vocab_size, bias=False)
     self.max_context = max_context
-    self.freqs_cis = precompute_freqs_cis(dim // n_heads, self.max_context * 2, rope_theta)
+    self.freqs_cis = precompute_freqs_cis(dim // n_heads, self.max_context * 2, rope_theta).half()
     self.forward_jit = TinyJit(self.forward) if jit else None
 
   def forward(self, tokens:Tensor, start_pos:Union[Variable,int], temperature:float=0.0):
