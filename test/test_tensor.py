@@ -239,10 +239,26 @@ class TestTinygrad(unittest.TestCase):
     assert Tensor(arr, dtype=dtypes.float64).dtype == dtypes.float64 # check that it works for something else
 
   def test_tensor_list_dtype(self):
-    arr = [1]
-    assert Tensor(arr).dtype == dtypes.int32
-    assert Tensor(arr, dtype=dtypes.float32).dtype == dtypes.float32
-    assert Tensor(arr, dtype=dtypes.float64).dtype == dtypes.float64
+    for arr in ([1], [[1,1],[1,1]], [[[1,1],[1,1]],[[1,1],[1,1]]]):
+      assert Tensor(arr).dtype == dtypes.int32, arr
+      assert Tensor(arr, dtype=dtypes.float32).dtype == dtypes.float32, arr
+      assert Tensor(arr, dtype=dtypes.float64).dtype == dtypes.float64, arr
+    t =  Tensor([])
+    assert t.dtype == Tensor.default_type
+    np.testing.assert_allclose(t.numpy(), np.array([]))
+    t =  Tensor([[],[]])
+    assert t.dtype == Tensor.default_type
+    np.testing.assert_allclose(t.numpy(), np.array([[],[]]))
+    t =  Tensor([[0,1],[3.5,4]])
+    assert t.dtype == Tensor.default_type
+    np.testing.assert_allclose(t.numpy(), np.array([[0,1],[3.5,4]]))
+    t =  Tensor([[[0],[1]],[[3.5],[4]]])
+    assert t.dtype == Tensor.default_type
+    np.testing.assert_allclose(t.numpy(), np.array([[[0],[1]],[[3.5],[4]]]))
+    with self.assertRaises(AssertionError): Tensor([[[]], []]).dtype
+    with self.assertRaises(AssertionError): Tensor([[1],[1],1]).dtype
+    with self.assertRaises(AssertionError): Tensor([[[1,1,1],[1,1]]]) # has an inhomogeneous shape
+    with self.assertRaises(AssertionError): Tensor([[1,1,1],[[1,1,1]]]) # has an inhomogeneous shape
 
   def test_tensor_copy(self):
     x = copy.deepcopy(Tensor.ones((3,3,3)))

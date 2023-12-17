@@ -63,10 +63,10 @@ class Tensor:
     elif isinstance(data, int): data = LazyBuffer.loadop(LoadOps.CONST, tuple(), dtype or dtypes.int32, device, data)
     elif isinstance(data, float): data = LazyBuffer.loadop(LoadOps.CONST, tuple(), dtype or Tensor.default_type, device, data)
     elif isinstance(data, bytes): data = LazyBuffer.fromCPU(np.frombuffer(data, np.uint8))
-    elif data is None: data = LazyBuffer.fromCPU(np.array([], dtype=(dtype or Tensor.default_type).np))
+    elif data is None or isinstance(data, list) and not data:
+      data = LazyBuffer.loadop(LoadOps.CONST, (0,), dtype or Tensor.default_type, device, data)
     elif isinstance(data, list):
-      # NOTE: cast at the end for the types that do not have a numpy dtype
-      data = LazyBuffer.fromCPU(np.array(data, (dtype:=(dtype or (dtypes.int32 if data and all_int(data) else Tensor.default_type))).np)).cast(dtype)
+      data = Tensor.stack([Tensor(d, device, dtype) for d in data]).lazydata
     elif isinstance(data, np.ndarray):
       if data.shape == (): data = LazyBuffer.loadop(LoadOps.CONST, tuple(), dtype or dtypes.from_np(data.dtype), device, data.item())
       else: data = LazyBuffer.fromCPU(data.astype(dtype.np) if dtype is not None and dtype.np is not None else data)
