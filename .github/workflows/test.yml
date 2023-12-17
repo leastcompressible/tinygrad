@@ -129,6 +129,8 @@ jobs:
       run: TORCH=1 python -m pytest -n=auto test/ --durations=20
     - name: Run ONNX
       run: TORCH=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py
+    - name: Run GPT2 w HALF/BEAM
+      run: TORCH=1 JIT=1 HALF=1 BEAM=1 GPU=1 CACHELEVEL=0 PYTHONPATH=. python3 ./examples/gpt2.py  --count=10 --temperature=0 --timing
 
   testopencl:
     strategy:
@@ -293,6 +295,9 @@ jobs:
       run: METAL=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py
     - name: Test tensor core ops
       run: METAL=1 TC=2 python test/test_ops.py TestOps.test_big_gemm
+    - name: Run GPT2 w HALF/BEAM
+      run: METAL=1 JIT=1 HALF=1 BEAM=1 GPU=1 CACHELEVEL=0 PYTHONPATH=. python3 ./examples/gpt2.py  --count=10 --temperature=0 --timing
+
 
   testhipcompilation:
     name: HIP Compilation Tests
