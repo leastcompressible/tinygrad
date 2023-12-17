@@ -293,6 +293,10 @@ jobs:
       run: METAL=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py
     - name: Test tensor core ops
       run: METAL=1 TC=2 python test/test_ops.py TestOps.test_big_gemm
+    - name: GPT2
+      run: METAL=1 JIT=1 python3 examples/gpt2.py --count 10 --temperature 0 --timing
+    - name: GPT2 w HALF
+      run: METAL=1 JIT=1 HALF=1 python3 examples/gpt2.py --count 10 --temperature 0 --timing
 
   testhipcompilation:
     name: HIP Compilation Tests
