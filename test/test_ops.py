@@ -325,6 +325,13 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65)], lambda x: 2.0**x, lambda x: 2.0**x)
     helper_test_op([()], lambda x: x**2.0, lambda x: x**2.0)
     helper_test_op([()], lambda x: 2.0**x, lambda x: 2.0**x)
+  def test_pow_complex(self):
+    L = [-10.0, -5.5, -3.0, -1.0, -0.5, 0.5, 1.0, 3.0, 5.5, 10.0]
+    for x in L:
+      for y in L + [0]:
+        desired = (torch.tensor(x) ** torch.tensor(y)).item()
+        actual = (Tensor(x) ** Tensor(y)).item()
+        np.testing.assert_allclose(actual, desired, atol=1e-6, rtol=1e-6)
   def test_sqrt(self):
     helper_test_op([(45,65)], lambda x: x.sqrt(), Tensor.sqrt, a=0)
     helper_test_op([()], lambda x: x.sqrt(), Tensor.sqrt, a=0)

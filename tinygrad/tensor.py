@@ -768,13 +768,14 @@ class Tensor:
     if not isinstance(y, Tensor) and reverse and y > 0: return self.mul(math.log(y)).exp()
 
     x, y = x._broadcasted(y)
+    if reverse: x, y = y, x
     ar = x.abs().log().mul(y).exp()
     # correct sign of negative numbers raised to a power (cos has a period of 2pi so we use it here to get the oddness of the power)
     sign = (y * math.pi).cos()
     # we only need to correct the sign if the base is negative
-    base_sign = ((x.sign() if not reverse else y.sign()) - 1) / -2
+    base_sign = ((x.sign()) - 1) / -2
     # we need 0 to be positive so we need to correct base_sign when the base is 0
-    base_sign = base_sign - (1.5 * (1 - (x.sign().abs() if not reverse else y.sign().abs())))
+    base_sign = base_sign - (1.5 * (1 - (x.sign().abs())))
     # inject nan if the base is negative and the power is not an integer
     to_nan = (((y - y.trunc()) * 1e10).abs().clip(0, 1)) * base_sign
     inject_nan = ((((-to_nan) * 2) + 1)).log().add(1)
