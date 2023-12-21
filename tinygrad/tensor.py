@@ -758,25 +758,29 @@ class Tensor:
   def div(self, x:Union[Tensor, float, int, bool], reverse=False) -> Tensor:
     x = self._to_const_val(x)
     return mlops.Div.apply(*self._broadcasted(x, reverse)) if x.__class__ is Tensor or reverse or not x or not dtypes.is_float(self.dtype) else self.mul(1/x)  # noqa: E501
-  def pow(self, x:Union[Tensor, float, int, bool], reverse=False) -> Tensor:
-    x = self._to_const_val(x)
-    if not isinstance(x, Tensor) and not reverse:
+  def pow(self, y:Union[Tensor, float, int, bool], reverse=False) -> Tensor:
+    x, y = self, self._to_const_val(y)
+    if not isinstance(y, Tensor) and not reverse:
       # simple pow identities
-      if x < 0: return self.reciprocal().pow(-x)
-      if x in [3,2,1,0]: return reduce(lambda acc,_: acc * self, range(int(x)), mlops.Zero.apply(self)+1)
-      if x == 0.5: return self.sqrt()
-    if not isinstance(x, Tensor) and reverse and x > 0: return self.mul(math.log(x)).exp()
-    ar = self.abs().log().mul(x).exp() if not reverse or isinstance(x, Tensor) else self.mul(math.log(abs(x))).exp()
+      if y < 0: return self.reciprocal().pow(-y)
+      if y in [3,2,1,0]: return reduce(lambda acc,_: acc * self, range(int(y)), mlops.Zero.apply(self)+1)
+      if y == 0.5: return self.sqrt()
+    if not isinstance(y, Tensor) and reverse and y > 0: return self.mul(math.log(y)).exp()
+
+    x, y = x._broadcasted(y)
+
+    ar = x.abs().log().mul(y).exp() if not reverse or isinstance(y, Tensor) else x.mul(math.log(abs(y))).exp()
     # correct sign of negative numbers raised to a power (cos has a period of 2pi so we use it here to get the oddness of the power)
-    sign = (x * math.pi).cos() if isinstance(x, Tensor) else math.cos(x * math.pi) if not reverse else (self * math.pi).cos()
+    sign = (y * math.pi).cos() if isinstance(y, Tensor) else math.cos(x * math.pi) if not reverse else (x * math.pi).cos()
     # we only need to correct the sign if the base is negative
-    base_sign = ((self.sign() if not reverse else x.sign() if isinstance(x, Tensor) else math.copysign(1, x)) - 1) / -2
+    base_sign = ((x.sign() if not reverse else y.sign() if isinstance(y, Tensor) else math.copysign(1, y)) - 1) / -2
     # we need 0 to be positive so we need to correct base_sign when the base is 0
-    base_sign = base_sign - (1.5 * (1 - (self.sign().abs() if not reverse else x.sign().abs() if isinstance(x, Tensor) else abs(int(bool(x))))))
+    base_sign = base_sign - (1.5 * (1 - (x.sign().abs() if not reverse else y.sign().abs() if isinstance(y, Tensor) else abs(int(bool(y))))))
     # inject nan if the base is negative and the power is not an integer
-    to_nan = (((x - x.trunc()) * 1e10).abs().clip(0, 1) if isinstance(x, Tensor) else int(bool(x - int(x))) if not reverse else ((self - self.trunc()) * 1e10).abs().clip(0, 1)) * base_sign  # noqa: E501
+    to_nan = (((y - y.trunc()) * 1e10).abs().clip(0, 1) if isinstance(y, Tensor) else int(bool(y - int(y))) if not reverse else ((x - x.trunc()) * 1e10).abs().clip(0, 1)) * base_sign  # noqa: E501
     inject_nan = ((((-to_nan) * 2) + 1)).log().add(1) if isinstance(to_nan, Tensor) else 1 if not to_nan else float("nan")
     return ar.mul(sign * base_sign + (1 - base_sign)).mul(inject_nan)
+
   def matmul(self, x:Tensor, reverse=False) -> Tensor: return x.dot(self) if reverse else self.dot(x)
   def xor(self, x:Tensor, reverse=False) -> Tensor: return mlops.Xor.apply(*self._broadcasted(x, reverse))
 
