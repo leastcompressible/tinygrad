@@ -325,6 +325,7 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65)], lambda x: 2.0**x, lambda x: 2.0**x)
     helper_test_op([()], lambda x: x**2.0, lambda x: x**2.0)
     helper_test_op([()], lambda x: 2.0**x, lambda x: 2.0**x)
+  @unittest.skipIf(CI and Device.DEFAULT in ["METAL", "WEBGPU"], "CI nan fastmath issue")
   def test_pow_complex(self):
     L = [-10.0, -5.5, -3.0, -1.0, -0.5, 0.5, 1.0, 3.0, 5.5, 10.0]
     # TODO: the behavior of 0 ** x is different from torch
