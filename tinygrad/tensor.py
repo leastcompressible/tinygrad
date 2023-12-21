@@ -768,17 +768,16 @@ class Tensor:
     if not isinstance(y, Tensor) and reverse and y > 0: return self.mul(math.log(y)).exp()
 
     x, y = x._broadcasted(y)
-
-    ar = x.abs().log().mul(y).exp() if not reverse or isinstance(y, Tensor) else x.mul(math.log(abs(y))).exp()
+    ar = x.abs().log().mul(y).exp()
     # correct sign of negative numbers raised to a power (cos has a period of 2pi so we use it here to get the oddness of the power)
-    sign = (y * math.pi).cos() if isinstance(y, Tensor) else math.cos(x * math.pi) if not reverse else (x * math.pi).cos()
+    sign = (y * math.pi).cos()
     # we only need to correct the sign if the base is negative
-    base_sign = ((x.sign() if not reverse else y.sign() if isinstance(y, Tensor) else math.copysign(1, y)) - 1) / -2
+    base_sign = ((x.sign() if not reverse else y.sign()) - 1) / -2
     # we need 0 to be positive so we need to correct base_sign when the base is 0
-    base_sign = base_sign - (1.5 * (1 - (x.sign().abs() if not reverse else y.sign().abs() if isinstance(y, Tensor) else abs(int(bool(y))))))
+    base_sign = base_sign - (1.5 * (1 - (x.sign().abs() if not reverse else y.sign().abs())))
     # inject nan if the base is negative and the power is not an integer
-    to_nan = (((y - y.trunc()) * 1e10).abs().clip(0, 1) if isinstance(y, Tensor) else int(bool(y - int(y))) if not reverse else ((x - x.trunc()) * 1e10).abs().clip(0, 1)) * base_sign  # noqa: E501
-    inject_nan = ((((-to_nan) * 2) + 1)).log().add(1) if isinstance(to_nan, Tensor) else 1 if not to_nan else float("nan")
+    to_nan = (((y - y.trunc()) * 1e10).abs().clip(0, 1)) * base_sign
+    inject_nan = ((((-to_nan) * 2) + 1)).log().add(1)
     return ar.mul(sign * base_sign + (1 - base_sign)).mul(inject_nan)
 
   def matmul(self, x:Tensor, reverse=False) -> Tensor: return x.dot(self) if reverse else self.dot(x)
