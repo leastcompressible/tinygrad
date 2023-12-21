@@ -194,6 +194,13 @@ if isinstance(Device[Device.DEFAULT], Compiled):
 if Device.DEFAULT == 'METAL':
   backend_test.exclude('test_maxpool_2d_same_upper_cpu')
 
+if Device.DEFAULT == 'METAL' and CI:
+  # tiny precision error on CI, disable to prevent flaky run
+  # Mismatched elements: 1 / 3072 (0.0326%)
+  # Max absolute difference: 7.599592e-07
+  # Max relative difference: 0.00133757
+  backend_test.exclude('test_erf_cpu')
+
 # disable model tests for now since they are slow
 if not getenv("MODELTESTS"):
   for x in backend_test.test_suite:
