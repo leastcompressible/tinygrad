@@ -330,9 +330,15 @@ class TestOps(unittest.TestCase):
     # TODO: the behavior of 0 ** x is different from torch
     for x in L:
       for y in L + [0]:
-        desired = (torch.tensor(x) ** torch.tensor(y)).item()
-        actual = (Tensor(x) ** Tensor(y)).item()
+        desired = (torch.tensor([x]) ** torch.tensor([y])).item()
+        actual = (Tensor([x]) ** Tensor([y])).item()
         np.testing.assert_allclose(actual, desired, atol=float("inf"), rtol=1e-6)  # pow can have big atol
+        actual_exponent_const = (Tensor([x]) ** Tensor(y)).item()
+        np.testing.assert_allclose(actual_exponent_const, desired, atol=float("inf"), rtol=1e-6)
+        actual_base_const = (Tensor(x) ** Tensor([y])).item()
+        np.testing.assert_allclose(actual_base_const, desired, atol=float("inf"), rtol=1e-6)
+        actual_base_exponent_const = (Tensor(x) ** Tensor(y)).item()
+        np.testing.assert_allclose(actual_base_exponent_const, desired, atol=float("inf"), rtol=1e-6)
   def test_sqrt(self):
     helper_test_op([(45,65)], lambda x: x.sqrt(), Tensor.sqrt, a=0)
     helper_test_op([()], lambda x: x.sqrt(), Tensor.sqrt, a=0)
