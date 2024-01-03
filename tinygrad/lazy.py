@@ -1,5 +1,5 @@
 from __future__ import annotations
-import sys, math
+import math
 import numpy as np
 from typing import Union, Optional, Any, Tuple, List, Set, Dict
 from tinygrad.dtype import dtypes, DType, ImageDType
@@ -10,9 +10,6 @@ from tinygrad.shape.shapetracker import ShapeTracker
 from tinygrad.device import Buffer, Device
 from tinygrad.graph import log_lazybuffer
 from weakref import ref, WeakSet, WeakValueDictionary, ReferenceType
-
-# lazy can recurse a lot
-sys.setrecursionlimit(10000)
 
 lazycache: WeakValueDictionary = WeakValueDictionary()
 def create_lazybuffer(device:str, st:ShapeTracker, dtype:DType,
