@@ -95,7 +95,12 @@ class Transformer:
     if temperature < 1e-6:
       ret = logits.argmax(-1)
     else:
-      ret = (logits / temperature).softmax().multinomial()
+      if getenv("SIMP_SOFTMAX"):
+        logits = (logits / temperature)
+        logits = logits - logits.max(-1, keepdim=True)
+        ret = logits.exp().multinomial()
+      else:
+        ret = (logits / temperature).softmax().multinomial()
     return ret.flatten().realize()
 
   # TODO: fix empty token
