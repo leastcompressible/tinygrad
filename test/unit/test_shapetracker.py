@@ -513,8 +513,12 @@ class TestSingleShapeTracker(unittest.TestCase):
     self.st.permute((1,0))
     assert not self.st.contiguous
 
-  def test_shrink(self):
+  def test_shrink_contiguous(self):
     self.st.shrink(((1,2), (0,4)))
+    assert self.st.contiguous
+
+  def test_shrink_not_contiguous(self):
+    self.st.shrink(((1,3), (1,4)))
     assert not self.st.contiguous
 
   def test_double_permute(self):

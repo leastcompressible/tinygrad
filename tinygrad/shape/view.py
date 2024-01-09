@@ -79,7 +79,7 @@ class View:
   @functools.lru_cache(maxsize=None)
   def create(shape:Tuple[sint, ...], strides:Optional[Tuple[sint, ...]]=None, offset:sint=0, mask:Optional[Tuple[Tuple[sint, sint], ...]]=None):
     strides = filter_strides(shape, strides) if strides else strides_for_shape(shape)
-    contiguous = offset == 0 and mask is None and strides == strides_for_shape(shape)
+    contiguous = mask is None and strides == strides_for_shape(shape)
     return View(shape, strides, offset, mask, contiguous)
 
   @functools.lru_cache(None)  # pylint: disable=method-cache-max-size-none
@@ -174,7 +174,7 @@ class View:
     if new_shape == () and self.mask and any(mx==my for (mx,my) in self.mask): return None
 
     # after the asserts, it's okay to check contiguous
-    if self.contiguous: return View.create(new_shape)
+    if self.contiguous: return View.create(new_shape, offset=self.offset)
 
     strides, r_new_shape = [], reversed(new_shape)
     for merged_dim, s, real_dim in reversed(_merge_dims(self.shape, self.strides, self.mask)):
