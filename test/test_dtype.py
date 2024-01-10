@@ -4,8 +4,8 @@ import torch
 import operator
 from tinygrad.helpers import CI, getenv, DEBUG, OSX, temp
 from tinygrad.dtype import DType, DTYPES_DICT, ImageDType, PtrDType, least_upper_float, least_upper_dtype
-from tinygrad import Device
-from tinygrad.tensor import Tensor, dtypes
+from tinygrad.runtime.ops_cpu import inverse_type_map as np_inverse_type_map
+from tinygrad import Device, Tensor, dtypes
 from typing import Any, List
 from hypothesis import given, settings, strategies as st
 
@@ -47,9 +47,9 @@ def _assert_eq(tensor:Tensor, target_dtype:DType, target):
 def _test_op(fxn, target_dtype:DType, target):
   _assert_eq(fxn(), target_dtype, target)
 def _test_cast(a:Tensor, target_dtype:DType):
-  _test_op(lambda: a.cast(target_dtype), target_dtype, list(a.numpy().astype(target_dtype.np)))
+  _test_op(lambda: a.cast(target_dtype), target_dtype, list(a.numpy().astype(np_inverse_type_map[target_dtype])))
 def _test_bitcast(a:Tensor, target_dtype:DType, target=None):
-  _test_op(lambda: a.bitcast(target_dtype), target_dtype, target or a.numpy().view(target_dtype.np).tolist())
+  _test_op(lambda: a.bitcast(target_dtype), target_dtype, target or a.numpy().view(np_inverse_type_map[target_dtype]).tolist())
 
 class TestDType(unittest.TestCase):
   DTYPE: Any = None
@@ -57,13 +57,14 @@ class TestDType(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     if not cls.DTYPE or not is_dtype_supported(cls.DTYPE): raise unittest.SkipTest("dtype not supported")
-    if dtypes.is_int(cls.DTYPE): cls.DATA = np.random.randint(0, 100, size=10, dtype=cls.DTYPE.np).tolist()
+    if dtypes.is_int(cls.DTYPE): cls.DATA = np.random.randint(0, 100, size=10, dtype=np_inverse_type_map[cls.DTYPE]).tolist()
     elif cls.DTYPE == dtypes.bool: cls.DATA = np.random.choice([True, False], size=10).tolist()
     else: cls.DATA = np.random.uniform(0, 1, size=10).tolist()
   def setUp(self):
     if self.DTYPE is None: raise unittest.SkipTest("base class")
 
-  def test_to_np(self): _test_to_np(Tensor(self.DATA, dtype=self.DTYPE), self.DTYPE.np, np.array(self.DATA, dtype=self.DTYPE.np))
+  def test_to_np(self):
+    _test_to_np(Tensor(self.DATA, dtype=self.DTYPE), np_inverse_type_map[self.DTYPE], np.array(self.DATA, dtype=np_inverse_type_map[self.DTYPE]))
 
   def test_casts_to(self): list(map(
     lambda dtype: _test_cast(Tensor(self.DATA, dtype=dtype), self.DTYPE),
@@ -101,7 +102,7 @@ class TestDType(unittest.TestCase):
   def test_dtypes_fields(self):
     fields = dtypes.fields()
     self.assertTrue(all(isinstance(value, DType) for value in fields.values()))
-    self.assertTrue(all(issubclass(value.np, np.generic) for value in fields.values() if value.np is not None))
+    self.assertTrue(all(issubclass(np_dtype, np.generic) for value in fields.values() if (np_dtype:=np_inverse_type_map[value]) is not None))
 
 def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   target_dtype = target_dtype or least_upper_dtype(a_dtype, b_dtype)
