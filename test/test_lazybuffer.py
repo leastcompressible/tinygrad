@@ -2,8 +2,7 @@
 import numpy as np
 import unittest
 from tinygrad.lazy import LazyBuffer
-from tinygrad import Device
-from tinygrad.tensor import Tensor
+from tinygrad import Tensor, Device, dtypes
 
 class TestLazyBuffer(unittest.TestCase):
   @unittest.skip("it doesn't work like this anymore")
@@ -51,7 +50,15 @@ class TestLazyBuffer(unittest.TestCase):
     assert a.device == b.device
 
   def test_shrink_const_into_zero(self):
+    # regression test to make sure the shapetracker is preserved
     a = Tensor.zeros(4,4,4).shrink((None, (0,0), None))
+    b = Tensor.zeros(4,1,4)
+    c = a.cat(b, dim=1)
+    np.testing.assert_allclose(c.numpy(), np.concatenate((a.numpy(), b.numpy()), axis=1))
+
+  def test_shrink_const_and_const(self):
+    # regression test to make sure the shapetracker is preserved
+    a = Tensor.zeros(4,4,4).shrink((None, (0,0), None)).cast(dtypes.int32)
     b = Tensor.zeros(4,1,4)
     c = a.cat(b, dim=1)
     np.testing.assert_allclose(c.numpy(), np.concatenate((a.numpy(), b.numpy()), axis=1))
