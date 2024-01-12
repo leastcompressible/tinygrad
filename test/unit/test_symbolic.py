@@ -424,9 +424,9 @@ class TestSymbolicSymbolicOps(unittest.TestCase):
     a = Variable("a", 1, 2)
     b = Variable("b", 1, 2)
     c = Variable("c", 1, 2)
-    x = SumNode([MulNode(a, b), c])
-    with self.assertRaises(AssertionError):
-      (x < 3)
+    x = a * b + c
+    lt = x < 3
+    assert isinstance(lt, LtNode) and lt.a == x and lt.b == 3
 
   def test_nested_variable_mod(self):
     i = Variable("i", 1, 5)

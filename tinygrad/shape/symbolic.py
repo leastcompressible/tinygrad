@@ -184,7 +184,10 @@ class MulNode(OpNode):
     if b % self.b == 0 and self.b > 0: return self.a//(b//self.b)
     return Node.__floordiv__(self, b, factoring_allowed)
   def __mod__(self, b: Union[Node, int]): return Node.__mod__(self.a * (self.b%b), b)
-  def get_bounds(self) -> Tuple[int, int]: return (self.a.min*self.b, self.a.max*self.b) if self.b >= 0 else (self.a.max*self.b, self.a.min*self.b)
+  def get_bounds(self) -> Tuple[int, int]:
+    if isinstance(self.b, int): return (self.a.min*self.b, self.a.max*self.b) if self.b >= 0 else (self.a.max*self.b, self.a.min*self.b)
+    # NOTE: only works for non-negatives
+    return (self.a.min*self.b.min, self.a.max*self.b.max)
   def substitute(self, var_vals: Dict[Variable, Node]) -> Node:
     return self.a.substitute(var_vals) * (self.b if isinstance(self.b, int) else self.b.substitute(var_vals))
 
@@ -272,8 +275,7 @@ class SumNode(RedNode):
         else: new_sum.append(x)
       lhs = Node.sum(new_sum)
       nodes = lhs.nodes if isinstance(lhs, SumNode) else [lhs]
-      assert all(not isinstance(node, MulNode) or isinstance(node.b, int) for node in nodes), "not supported"
-      muls, others = partition(nodes, lambda x: isinstance(x, MulNode) and x.b > 0 and x.max >= b)
+      muls, others = partition(nodes, lambda x: isinstance(x, MulNode) and isinstance(x.b, int) and x.b > 0 and x.max >= b)
       if muls:
         # NOTE: gcd in python 3.8 takes exactly 2 args
         mul_gcd = b
