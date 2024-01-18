@@ -304,6 +304,8 @@ class Compiled:
     if DEBUG >= 3:
       from tinygrad.graph import print_tree
       print_tree(ast)
+    key = {"device":self.linearizer_opts.device, "ast": ast, "noopt": NOOPT.value, "beam": BEAM.value, "tc": getenv("TC", 1)}
+    if not getenv("DISABLE_LINEARIZER_CACHE") and (lin := diskcache_get("get_linearizer", str(key))) is not None: return lin
     from tinygrad.codegen.linearizer import Linearizer
     k = Linearizer(ast, self.linearizer_opts)
     k.required_optimizations()
@@ -322,6 +324,7 @@ class Compiled:
         timed = sorted([(nm, tk, time_linearizer(tk, test_rawbuffers, allow_test_size=False, clear_l2=True)) for nm, tk in lins], key=lambda x: x[2])
         if DEBUG >= 1: print("  <  ".join(f"{nm:6s} : {lin.colored_shape(30, dense=True)} : {tm*1e6:8.2f} us" for nm, lin, tm in timed))
         k = timed[0][1]
+    diskcache_put("get_linearizer", str(key), k)
     return k
 
   @functools.lru_cache(None)    # pylint: disable=method-cache-max-size-none
