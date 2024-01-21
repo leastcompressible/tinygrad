@@ -12,6 +12,7 @@ from tinygrad import nn, dtypes, Tensor, Device, GlobalCounters, TinyJit
 from tinygrad.nn.state import get_state_dict, get_parameters
 from tinygrad.nn import optim
 from tinygrad.helpers import Context, BEAM, WINO, getenv
+from tinygrad.shape.symbolic import Variable
 
 BS, EVAL_BS, STEPS = getenv("BS", 512), getenv('EVAL_BS', 500), getenv("STEPS", 1000)
 GPUS = [f'{Device.DEFAULT}:{i}' for i in range(getenv("GPUS", 1))]
@@ -185,8 +186,7 @@ def train_cifar():
     while True:
       st = time.monotonic()
       X, Y = X_in, Y_in
-      order = list(range(0, X.shape[0]))
-      random.shuffle(order)
+      # TODO: no shuffle for eval
       if is_train:
         # TODO: these are not jitted
         if getenv("RANDOM_CROP", 1):
@@ -196,16 +196,19 @@ def train_cifar():
         if getenv("CUTMIX", 1):
           if step >= hyp['net']['cutmix_steps']:
             X, Y = cutmix(X, Y, mask_size=hyp['net']['cutmix_size'])
+      order = list(range(0, X.shape[0]))
+      random.shuffle(order)
       X, Y = X.numpy(), Y.numpy()
+      X, Y = Tensor(X[order, :]), Tensor(Y[order])
       et = time.monotonic()
       print(f"shuffling {'training' if is_train else 'test'} dataset in {(et-st)*1e3:.2f} ms ({epoch=})")
       for i in range(0, X.shape[0], BS):
         # pad the last batch  # TODO: not correct for test
-        batch_end = min(i+BS, Y.shape[0])
-        x = Tensor(X[order[batch_end-BS:batch_end],:])
-        y = Tensor(Y[order[batch_end-BS:batch_end]])
+        batch_end = min(i+BS, X.shape[0])
+        # x = Tensor(X[order[batch_end-BS:batch_end],:])
+        # y = Tensor(Y[order[batch_end-BS:batch_end]])
         step += 1
-        yield x, y
+        yield X, Y, batch_end
       epoch += 1
       if not is_train: break
 
@@ -281,7 +284,9 @@ def train_cifar():
   lr_sched_bias     = OneCycleLR(opt_bias,     max_lr=hyp['opt']['bias_lr'],     pct_start=pct_start, div_factor=initial_div_factor, final_div_factor=1./(initial_div_factor*final_lr_ratio), total_steps=STEPS)
   lr_sched_non_bias = OneCycleLR(opt_non_bias, max_lr=hyp['opt']['non_bias_lr'], pct_start=pct_start, div_factor=initial_div_factor, final_div_factor=1./(initial_div_factor*final_lr_ratio), total_steps=STEPS)
 
-  def train_step(model, optimizer, lr_scheduler, X, Y):
+  def train_step(model, optimizer, lr_scheduler, X, Y, batch_end_var):
+    X = X.shrink(((batch_end_var-BS, batch_end_var), None, None, None))
+    Y = Y.shrink(((batch_end_var-BS, batch_end_var), None))
     out = model(X)
     loss_batchsize_scaler = 512/BS
     loss = cross_entropy(out, Y, reduction='none', label_smoothing=hyp['opt']['label_smoothing']).mul(hyp['opt']['loss_scale_scaler']*loss_batchsize_scaler).sum().div(hyp['opt']['loss_scale_scaler'])
@@ -300,7 +305,9 @@ def train_cifar():
 
   train_step_jitted = TinyJit(train_step)
 
-  def eval_step(model, X, Y):
+  def eval_step(model, X, Y, batch_end_var):
+    X = X.shrink(((batch_end_var-EVAL_BS, batch_end_var), None, None, None))
+    Y = Y.shrink(((batch_end_var-EVAL_BS, batch_end_var), None))
     out = model(X, training=False)
     loss = cross_entropy(out, Y, reduction='mean')
     correct = out.argmax(axis=1) == Y.argmax(axis=1)
@@ -330,11 +337,12 @@ def train_cifar():
         corrects_ema = []
         losses = []
         losses_ema = []
-        for Xt, Yt in fetch_batches(X_test, Y_test, BS=EVAL_BS, is_train=False):
+        for Xt, Yt, batch_end in fetch_batches(X_test, Y_test, BS=EVAL_BS, is_train=False):
+          batch_end_var = Variable("batch_end", 1, X_test.shape[0]).bind(batch_end)
           if len(GPUS) > 1:
             Xt, Yt = Xt.shard(GPUS, axis=0), Yt.shard(GPUS, axis=0)
 
-          correct, loss = eval_step_jitted(model, Xt, Yt)
+          correct, loss = eval_step_jitted(model, Xt, Yt, batch_end_var)
           losses.append(loss.numpy().tolist())
           corrects.extend(correct.numpy().tolist())
           if model_ema:
@@ -353,13 +361,15 @@ def train_cifar():
 
       if STEPS == 0 or i == STEPS: break
 
-      X, Y = next(batcher)
+      X, Y, batch_end = next(batcher)
+      batch_end_var = Variable("batch_end", 1, X.shape[0]).bind(batch_end)
+
       if len(GPUS) > 1:
         X, Y = X.shard(GPUS, axis=0), Y.shard(GPUS, axis=0)
 
       GlobalCounters.reset()
       with Context(BEAM=getenv("LATEBEAM", BEAM.value), WINO=getenv("LATEWINO", WINO.value)):
-        loss = train_step_jitted(model, [opt_bias, opt_non_bias], [lr_sched_bias, lr_sched_non_bias], X, Y)
+        loss = train_step_jitted(model, [opt_bias, opt_non_bias], [lr_sched_bias, lr_sched_non_bias], X, Y, batch_end_var)
         et = time.monotonic()
         loss_cpu = loss.numpy()
       # EMA for network weights
