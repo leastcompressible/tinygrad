@@ -205,10 +205,12 @@ def train_cifar():
       for i in range(0, X.shape[0], BS):
         # pad the last batch  # TODO: not correct for test
         batch_end = min(i+BS, X.shape[0])
-        # x = Tensor(X[order[batch_end-BS:batch_end],:])
-        # y = Tensor(Y[order[batch_end-BS:batch_end]])
         step += 1
-        yield X, Y, batch_end
+        if i == 0:
+          # yield the newly processed X and Y
+          yield X, Y, batch_end
+        else:
+          yield None, None, batch_end
       epoch += 1
       if not is_train: break
 
@@ -337,10 +339,12 @@ def train_cifar():
         corrects_ema = []
         losses = []
         losses_ema = []
-        for Xt, Yt, batch_end in fetch_batches(X_test, Y_test, BS=EVAL_BS, is_train=False):
+        for Xt_new, Yt_new, batch_end in fetch_batches(X_test, Y_test, BS=EVAL_BS, is_train=False):
           batch_end_var = Variable("batch_end", 1, X_test.shape[0]).bind(batch_end)
-          if len(GPUS) > 1:
-            Xt, Yt = Xt.shard(GPUS, axis=0), Yt.shard(GPUS, axis=0)
+          if Xt_new is not None:
+            Xt, Yt = Xt_new, Yt_new
+            if len(GPUS) > 1:
+              Xt, Yt = Xt.shard(GPUS, axis=0), Yt.shard(GPUS, axis=0)
 
           correct, loss = eval_step_jitted(model, Xt, Yt, batch_end_var)
           losses.append(loss.numpy().tolist())
@@ -361,11 +365,12 @@ def train_cifar():
 
       if STEPS == 0 or i == STEPS: break
 
-      X, Y, batch_end = next(batcher)
+      X_new, Y_new, batch_end = next(batcher)
       batch_end_var = Variable("batch_end", 1, X.shape[0]).bind(batch_end)
-
-      if len(GPUS) > 1:
-        X, Y = X.shard(GPUS, axis=0), Y.shard(GPUS, axis=0)
+      if X_new is not None:
+        X, Y = X_new, Y_new
+        if len(GPUS) > 1:
+          X, Y = X.shard(GPUS, axis=0), Y.shard(GPUS, axis=0)
 
       GlobalCounters.reset()
       with Context(BEAM=getenv("LATEBEAM", BEAM.value), WINO=getenv("LATEWINO", WINO.value)):
