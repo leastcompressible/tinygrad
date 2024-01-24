@@ -782,7 +782,7 @@ class Tensor:
       if 0 in self.shape: return self, self.full_like(y)
       if isinstance(self.dtype, ImageDType) or dtypes.is_float(x.dtype) or (dtypes.is_int(x.dtype) and isinstance(y, int)): y_dtype = x.dtype
       else: y_dtype = dtypes.from_py(y)
-      y = Tensor(y, self.device, y_dtype, requires_grad=False)
+      y = Tensor(self.lazydata.const(y, dtype=y_dtype), self.device, requires_grad=False)
 
     if match_dtype:
       output_dtype = least_upper_dtype(x.dtype, y.dtype)

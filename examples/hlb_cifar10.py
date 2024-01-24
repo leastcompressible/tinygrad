@@ -3,14 +3,15 @@
 # tinygrad implementation of https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
 # https://myrtle.ai/learn/how-to-train-your-resnet-8-bag-of-tricks/
 # https://siboehm.com/articles/22/CUDA-MMM
-import random, time
+import random, time, functools, operator
 import numpy as np
-from typing import Optional
+from typing import Optional, List
 from extra.datasets import fetch_cifar, cifar_mean, cifar_std
 from extra.lr_scheduler import OneCycleLR
 from tinygrad import nn, dtypes, Tensor, Device, GlobalCounters, TinyJit
 from tinygrad.nn.state import get_state_dict, get_parameters
 from tinygrad.nn import optim
+from tinygrad.features.multi import MultiLazyBuffer
 from tinygrad.helpers import Context, BEAM, WINO, getenv
 
 BS, EVAL_BS, STEPS = getenv("BS", 512), getenv('EVAL_BS', 500), getenv("STEPS", 1000)
@@ -25,11 +26,36 @@ else:
   dtypes.default_float = dtypes.float32
   np_dtype = np.float32
 
-class BatchNorm(nn.BatchNorm2d):
+class BatchNorm:
   def __init__(self, num_features):
-    super().__init__(num_features, track_running_stats=False, eps=1e-12, momentum=0.85, affine=True)
-    self.weight.requires_grad = False
-    self.bias.requires_grad = True
+    self.bns:List[nn.BatchNorm2d] = []
+    for device in GPUS:
+      bn = nn.BatchNorm2d(num_features, track_running_stats=False, eps=1e-12, momentum=0.85, affine=True)
+      bn.weight.shard_((device,))
+      bn.weight.requires_grad = False
+      bn.bias.shard_((device,))
+      bn.bias.requires_grad = True
+      self.bns.append(bn)
+
+  def __call__(self, x:Tensor):
+    if len(self.bns) == 1: return self.bns[0](x)
+
+    bn_ts = []
+    for bound,bn in zip(x.lazydata.bounds,self.bns):
+      xi = x[bound[0]:bound[1]]
+      # print(f"{xi.lazydata=}")
+      bni = bn(xi)
+      print(f"{bni.shape=}")
+      print(f"{bni.lazydata.device=}")
+      print(f"{bni.lazydata.real=}")
+      bn_ts.append(bni)
+
+    print(bn_ts)
+    ret = functools.reduce(operator.add, bn_ts[1:], bn_ts[0])
+    print(f"{ret.shape=}")
+    print(f"{ret.lazydata.device=}")
+    print(f"{ret.lazydata.real=}")
+    return ret
 
 class ConvGroup:
   def __init__(self, channels_in, channels_out):
@@ -259,8 +285,9 @@ def train_cifar():
   X_test, Y_test = X_test.cast(dtypes.default_float), Y_test.cast(dtypes.default_float)
 
   if len(GPUS) > 1:
-    for x in get_parameters(model):
-      x.to_(GPUS)
+    for name, x in get_state_dict(model).items():
+      if ".bns." not in name:
+        x.to_(GPUS)
 
   # parse the training params into bias and non-bias
   params_dict = get_state_dict(model)
