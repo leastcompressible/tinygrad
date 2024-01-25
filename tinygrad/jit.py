@@ -21,19 +21,19 @@ class JitItem:
 def get_jit_stats(jit_cache: List[JitItem]) -> Tuple[Node, int]:
   return functools.reduce(operator.add, [ji.prg.op_estimate for ji in jit_cache if isinstance(ji.prg, CompiledASTRunner)], NumNode(0)), \
          functools.reduce(operator.add, [ji.prg.mem_estimate for ji in jit_cache if isinstance(ji.prg, CompiledASTRunner)], 0)
-def get_input_replace(jit_cache: List[JitItem], input_rawbuffers:List[Buffer]) -> Dict[Tuple[int, int], int]:
+def get_input_replace(jit_cache: List[JitItem], input_buffers:List[Buffer]) -> Dict[Tuple[int, int], int]:
   input_replace: Dict[Tuple[int, int], int] = {}
   for j,ji in enumerate(jit_cache):
     for i,a in enumerate(ji.rawbufs):
-      if a in input_rawbuffers:
-        input_replace[(j,i)] = input_rawbuffers.index(a)
+      if a in input_buffers: input_replace[(j,i)] = input_buffers.index(a)
   return input_replace
 def get_jc_idxs_with_updatable_launch_dims(jit_cache: List[JitItem]) -> List[int]:
-  return [j for j,ji in enumerate(jit_cache) if isinstance(ji.prg, CompiledASTRunner) and ((ji.prg.global_size and not all_int(ji.prg.global_size)) or (ji.prg.local_size and not all_int(ji.prg.local_size)))]  # noqa: E501
+  return [j for j,ji in enumerate(jit_cache) if isinstance(ji.prg, CompiledASTRunner) and \
+          ((ji.prg.global_size and not all_int(ji.prg.global_size)) or (ji.prg.local_size and not all_int(ji.prg.local_size)))]
 def get_jc_idxs_with_updatable_var_vals(jit_cache: List[JitItem]) -> List[int]:
   return [j for j,ji in enumerate(jit_cache) if isinstance(ji.prg, CompiledASTRunner) and ji.prg.vars]
 
-def apply_graph_to_jit(jit_cache: List[JitItem], input_rawbuffers: List[Buffer], var_vals: Dict[Variable, int]) -> List[JitItem]:
+def apply_graph_to_jit(jit_cache: List[JitItem], input_buffers: List[Buffer], var_vals: Dict[Variable, int]) -> List[JitItem]:
   # Split JIT cache into batches for faster graph execution.
   # This allows the accelerator to run some batches while subsequent graphs are still being updated.
   graphed_jit_cache: List[JitItem] = []
@@ -46,7 +46,7 @@ def apply_graph_to_jit(jit_cache: List[JitItem], input_rawbuffers: List[Buffer],
     assert current_device is not None
     try:
       if len(current_batch) <= 1: raise GraphException("only one kernel doesn't graph")
-      graphed_jit_cache.append(JitItem(current_device.graph(current_batch, input_rawbuffers, var_vals), cast(List[Optional[Buffer]], input_rawbuffers))) # noqa: E501
+      graphed_jit_cache.append(JitItem(current_device.graph(current_batch, input_buffers, var_vals), cast(List[Optional[Buffer]], input_buffers)))
       if DEBUG >= 2: print(f"\tJIT GRAPHing batch with {len(current_batch)} kernels on device {current_device}")
     except GraphException as e:
       graphed_jit_cache.extend(current_batch)
@@ -96,10 +96,10 @@ class TinyJit(Generic[ReturnType]):
     input_tensors: Dict[Union[int, str], Union[LazyBuffer, MultiLazyBuffer]] = { cast(Union[int, str], k):v.realize().lazydata for k,v in itertools.chain(enumerate(args), kwargs.items()) if v.__class__ is Tensor }  # noqa: E501
     expected_name_sts_dtype_device = tuple([(k, v.st.unbind()[0] if isinstance(v, LazyBuffer) else ShapeTracker.from_shape(v.shape), v.dtype, v.device) for k,v in input_tensors.items()]) #noqa: E501
 
-    # get rawbuffers
+    # get buffers
     lbs: List[LazyBuffer] = [v for v in input_tensors.values() if isinstance(v, LazyBuffer)] + flatten([mlb.lbs for mlb in input_tensors.values() if isinstance(mlb, MultiLazyBuffer)]) #noqa: E501
-    input_rawbuffers: List[Buffer] = [v.base.realized for v in lbs if v.base.realized is not None]
-    assert len(set(input_rawbuffers)) == len(input_rawbuffers), "duplicate inputs to JIT"
+    input_buffers: List[Buffer] = [v.base.realized for v in lbs if v.base.realized is not None]
+    assert len(set(input_buffers)) == len(input_buffers), "duplicate inputs to JIT"
 
     # get variables: they can either be in Tensors or passed in as arguments, and all must be bound. these are all global
     var_vals: Dict[Variable, int] = merge_dicts([arg.st.var_vals for arg in lbs] + [dict(x.unbind() for x in itertools.chain(args, kwargs.values()) if isinstance(x, Variable))])  # noqa: E501
@@ -111,7 +111,7 @@ class TinyJit(Generic[ReturnType]):
       assert all(x[0] == y[0] and x[1].views == y[1].views and x[2] == y[2] and x[3] == y[3]
                  for x,y in zip(self.expected_name_sts_dtype_device, expected_name_sts_dtype_device)), \
         f"mismatch of input tensors, expected {self.expected_name_sts_dtype_device} got {expected_name_sts_dtype_device}"
-      for (j,i),input_idx in self.input_replace.items(): self.jit_cache[j].rawbufs[i] = input_rawbuffers[input_idx]
+      for (j,i),input_idx in self.input_replace.items(): self.jit_cache[j].rawbufs[i] = input_buffers[input_idx]
       for ji in self.jit_cache: ji.prg(cast(List[Buffer], ji.rawbufs), var_vals, wait=DEBUG>=2, jit=True)
     elif self.cnt == 1:
       # jit capture
@@ -122,14 +122,14 @@ class TinyJit(Generic[ReturnType]):
         for p in get_parameters(self.ret): p.realize()
       self.jit_cache = CacheCollector.finish()
       assert len(self.jit_cache) != 0, "didn't JIT anything!"
-      if DEBUG >= 1 and len(set(get_input_replace(self.jit_cache, input_rawbuffers).values())) != len(input_rawbuffers):
+      if DEBUG >= 1 and len(set(get_input_replace(self.jit_cache, input_buffers).values())) != len(input_buffers):
         print("WARNING: some input tensors not found")
-      if DEBUG >= 1: print(f"JIT captured {len(self.jit_cache)} kernels with {len(input_rawbuffers)} inputs")
+      if DEBUG >= 1: print(f"JIT captured {len(self.jit_cache)} kernels with {len(input_buffers)} inputs")
 
       # Condense the items into a graph executor.
-      if getenv("JIT") != 2: self.jit_cache = apply_graph_to_jit(self.jit_cache, input_rawbuffers, var_vals)
+      if getenv("JIT") != 2: self.jit_cache = apply_graph_to_jit(self.jit_cache, input_buffers, var_vals)
 
-      self.input_replace = get_input_replace(self.jit_cache, input_rawbuffers)
+      self.input_replace = get_input_replace(self.jit_cache, input_buffers)
     elif self.cnt == 0:
       # jit ignore
       self.ret = self.fxn(*args, **kwargs)

@@ -203,7 +203,8 @@ class ModNode(OpNode):
     return (self.a//b) % (self.b//b) if self.b % b == 0 else Node.__floordiv__(self, b, factoring_allowed)
   def get_bounds(self) -> Tuple[int, int]:
     assert self.a.min >= 0 and isinstance(self.b, int)
-    return (0, self.b-1) if self.a.max - self.a.min >= self.b or (self.a.min != self.a.max and self.a.min%self.b >= self.a.max%self.b) else (self.a.min%self.b, self.a.max%self.b)  # noqa: E501
+    return (0, self.b-1) if self.a.max - self.a.min >= self.b or (self.a.min != self.a.max and self.a.min%self.b >= self.a.max%self.b) else \
+      (self.a.min%self.b, self.a.max%self.b)
   def substitute(self, var_vals: Dict[Variable, Node]) -> Node: return self.a.substitute(var_vals) % self.b
 
 class RedNode(Node):

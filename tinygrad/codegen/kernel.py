@@ -270,7 +270,8 @@ class Kernel:
       can_merge = []
       for j in range(len(shapes)):
         # TODO: added the always mergeability of 1s, is this right? if so, add to shapetracker in the 1 case
-        can_merge.append(strides[j][i] is not None and ((strides[j][i] != 0 and rets[j][-1][1] == shapes[j][i]*cast(int, strides[j][i])) or (strides[j][i] == 0 and rets[j][-1][1] == 0))) # noqa: E501
+        can_merge.append(strides[j][i] is not None and ((strides[j][i] != 0 and rets[j][-1][1] == shapes[j][i]*cast(int, strides[j][i])) or \
+                                                        (strides[j][i] == 0 and rets[j][-1][1] == 0)))
       # more can merge than this
       mergeable = all(can_merge) and i != self.first_reduce
       for j in range(len(shapes)):
