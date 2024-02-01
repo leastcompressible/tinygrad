@@ -263,7 +263,7 @@ jobs:
 
   testmetal:
     name: Metal Tests
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 20
 
     steps:
@@ -277,14 +277,14 @@ jobs:
       uses: actions/cache@v3
       with:
         path: /Users/runner/Library/Python/3.11/lib/python/site-packages
-        key: metal-testing-user3-packages-${{ hashFiles('**/setup.py') }}
+        key: metal-macos-14-testing-user3-packages-${{ hashFiles('**/setup.py') }}
     - name: Install Dependencies
       run: pip install --user -e '.[testing]' --extra-index-url https://download.pytorch.org/whl/cpu
     - name: Cache downloads
       uses: actions/cache@v3
       with:
         path: ~/Library/Caches/tinygrad/downloads/
-        key: downloads-cache-metal-only-${{ env.DOWNLOAD_CACHE_VERSION }}
+        key: downloads-cache-metal-macos-14-only-${{ env.DOWNLOAD_CACHE_VERSION }}
     - name: Check Device.DEFAULT (METAL) and print some source
       run: |
         METAL=1 python -c "from tinygrad import Device; assert Device.DEFAULT == 'METAL', Device.DEFAULT"
