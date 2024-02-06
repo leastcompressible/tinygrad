@@ -36,7 +36,6 @@ def train_resnet():
       optimizer.step()
       lr_schedule.step()
       acc = ((probs.argmax(-1) == y).mean()*100)
-      del x, y, probs
     return loss.realize(), acc.realize()
 
   # time BEAM=8 TRAIN_STEPS_PER_EPOCH=1 MODEL=resnet HIP_VISIBLE_DEVICES=3 python examples/mlperf/model_train.py
