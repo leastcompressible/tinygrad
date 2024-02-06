@@ -1,7 +1,7 @@
 from tinygrad import Tensor, Device, TinyJit, dtypes, nn
 from tinygrad.helpers import getenv
 from tinygrad.nn import optim
-
+import wandb
 from tqdm import trange
 
 def train_resnet():
@@ -14,12 +14,21 @@ def train_resnet():
   BS = getenv("BS", 64)
   EPOCHS = getenv("EPOCHS", 60)
 
+  # wandb.init(
+  #   project="resnet-test",
+  #   config={
+  #     "architecture": "resnet",
+  #     "dataset": "imagenet",
+  #     "epochs": EPOCHS,
+  #   }
+  # )
+
   train_steps_per_epoch = getenv("TRAIN_STEPS_PER_EPOCH", (len(get_train_files()) // BS) - 1)
 
   num_classes = 1000
   model = ResNet50(num_classes)
 
-  optimizer = optim.SGD(nn.state.get_parameters(model), lr=0.001*BS*GPUS, momentum=0.875, weight_decay=1/2**15)
+  optimizer = optim.SGD(nn.state.get_parameters(model), lr=0.0001*BS*GPUS, momentum=0.875, weight_decay=1/2**15)
   lr_schedule = CosineAnnealingLR(optimizer, EPOCHS*train_steps_per_epoch)
   input_mean = Tensor([0.485, 0.456, 0.406]).reshape(1, -1, 1, 1)
   input_std = Tensor([0.229, 0.224, 0.225]).reshape(1, -1, 1, 1)
@@ -40,14 +49,16 @@ def train_resnet():
 
   # time BEAM=8 TRAIN_STEPS_PER_EPOCH=1 MODEL=resnet HIP_VISIBLE_DEVICES=3 python examples/mlperf/model_train.py
   for _ in trange(EPOCHS):
-    iterator = iter(batch_load_resnet(batch_size=BS, val=False, shuffle=train_steps_per_epoch>1))
+    iterator = iter(batch_load_resnet(batch_size=BS, val=False, shuffle=False))
 
-    for _ in trange(train_steps_per_epoch):
+    for i in trange(train_steps_per_epoch):
       x, y, c = next(iterator)
       x = x.to(Device.DEFAULT)
       y = Tensor(y, dtype=dtypes.int32, device=Device.DEFAULT)
       loss, acc = train_step(x, y)
-    print(loss.numpy(), acc.numpy())
+      if i % 100 == 0:
+        print(loss.numpy(), acc.numpy())
+        # wandb.log({"acc": acc.numpy(), "loss": loss.numpy()})
 
 def train_retinanet():
   # TODO: Retinanet
