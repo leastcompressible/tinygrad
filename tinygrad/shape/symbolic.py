@@ -32,7 +32,7 @@ class Node:
     if not isinstance(other, Node): return NotImplemented
     return self.key == other.key
   def __neg__(self): return self*-1
-  def __add__(self, b:Union[Node,int]): return Node.sum([self, b if isinstance(b, Node) else NumNode(b)])
+  def __add__(self, b:Union[Node,int]): return Node.sum([self, NumNode(b) if isinstance(b, int) else b])
   def __radd__(self, b:int): return self+b
   def __sub__(self, b:Union[Node,int]): return self+-b
   def __rsub__(self, b:int): return -self+b
@@ -119,7 +119,7 @@ class Node:
 class Variable(Node):
   def __new__(cls, *args):
     expr, nmin, nmax = args
-    assert nmin >= 0 and nmin <= nmax, f"invalid Variable {expr=} {nmin=} {nmax=}"
+    assert 0 <= nmin <= nmax, f"invalid Variable {expr=} {nmin=} {nmax=}"
     if nmin == nmax: return NumNode(nmin)
     return super().__new__(cls)
 
@@ -163,7 +163,7 @@ class OpNode(Node):
   def __init__(self, a:Node, b:Union[Node, int]):
     self.a, self.b = a, b
     self.min, self.max = self.get_bounds()
-  def vars(self): return self.a.vars() | (self.b.vars() if isinstance(self.b, Node) else set())
+  def vars(self): return self.a.vars() | (set() if isinstance(self.b, int) else self.b.vars())
   def get_bounds(self) -> Tuple[int, int]: raise NotImplementedError("must be implemented")
 
 class LtNode(OpNode):
@@ -197,8 +197,8 @@ class DivNode(OpNode):
 
 class ModNode(OpNode):
   def __mod__(self, b: Union[Node, int]):
-    if isinstance(b, Node) or isinstance(self.b, Node): return Node.__mod__(self, b)
-    return self.a % b if self.b % b == 0 else Node.__mod__(self, b)
+    if isinstance(b, int) and isinstance(self.b, int) and self.b % b == 0: return self.a % b
+    return Node.__mod__(self, b)
   def __floordiv__(self, b: Union[Node, int], factoring_allowed=True):
     return (self.a//b) % (self.b//b) if self.b % b == 0 else Node.__floordiv__(self, b, factoring_allowed)
   def get_bounds(self) -> Tuple[int, int]:
