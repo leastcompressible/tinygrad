@@ -4,7 +4,7 @@ import functools, math
 from dataclasses import dataclass
 from typing import Tuple, List, Optional, Dict, Set, cast, Iterable, Union
 from tinygrad.helpers import merge_dicts, getenv
-from tinygrad.shape.symbolic import Variable, MulNode, Node, SumNode, NumNode, sint
+from tinygrad.shape.symbolic import Variable, MulNode, Node, SumNode, NumNode, sint, nodify
 from tinygrad.shape.view import View, strides_for_shape
 
 def un1d(shape:Tuple[sint, ...], offs:sint) -> List[sint]:
@@ -85,7 +85,7 @@ def merge_views(vm2:View, vm1:View) -> Optional[View]:
 
 def _expr_view(view:View, idxs:List[Node], valid:Optional[Node]=None) -> Tuple[Node, Node]:
   assert len(idxs) == len(view.shape), f"need an idx for all dimensions {idxs} vs {view.shape}"
-  iexpr: List[Node] = [NumNode(view.offset) if isinstance(view.offset, int) else view.offset]
+  iexpr: List[Node] = [nodify(view.offset)] if view.offset else []
   vexpr: List[Node] = [valid] if valid is not None else []
   for idx,sh,st,m in zip(idxs, view.shape, view.strides, view.mask if view.mask is not None else [None]*len(view.shape)):
     if sh != 1 and st != 0: iexpr.append(idx*st)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import unittest, pickle
-from tinygrad.shape.symbolic import MulNode, SumNode, Variable, NumNode, LtNode, ModNode, Node, sym_render, sym_infer
+from tinygrad.shape.symbolic import MulNode, SumNode, Variable, NumNode, LtNode, ModNode, Node, sym_render, sym_infer, nodify
 
 class TestSymbolicPickle(unittest.TestCase):
   def _test_pickle_unpickle(self, x): self.assertEqual(x, pickle.loads(pickle.dumps(x)))
@@ -457,6 +457,15 @@ class TestSymbolicSymbolicOps(unittest.TestCase):
     b = a + 1
     c = b.substitute({a: NumNode(1)})
     assert c == NumNode(2)
+
+class TestNodify(unittest.TestCase):
+  def test_nodify(self):
+    a = nodify(1)
+    assert isinstance(a, NumNode) and a == NumNode(1)
+    a = nodify(NumNode(1))
+    assert isinstance(a, NumNode) and a == NumNode(1)
+    a = nodify(Variable("a", 1, 2))
+    assert isinstance(a, Variable) and a == Variable("a", 1, 2)
 
 if __name__ == '__main__':
   unittest.main()

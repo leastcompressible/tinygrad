@@ -32,7 +32,7 @@ class Node:
     if not isinstance(other, Node): return NotImplemented
     return self.key == other.key
   def __neg__(self): return self*-1
-  def __add__(self, b:Union[Node,int]): return Node.sum([self, NumNode(b) if isinstance(b, int) else b])
+  def __add__(self, b:Union[Node,int]): return Node.sum([self, nodify(b)])
   def __radd__(self, b:int): return self+b
   def __sub__(self, b:Union[Node,int]): return self+-b
   def __rsub__(self, b:int): return -self+b
@@ -43,7 +43,7 @@ class Node:
   def __mul__(self, b:Union[Node, int]):
     if b == 0: return NumNode(0)
     if b == 1: return self
-    return create_node(MulNode(self, b.b)) if isinstance(b, NumNode) else create_node(MulNode(self, b))
+    return create_node(MulNode(self, b.b if isinstance(b, NumNode) else b))
   def __rmul__(self, b:int): return self*b
 
   # *** complex ops ***
@@ -296,6 +296,8 @@ def sym_infer(a: Union[Node, int], var_vals: Dict[Variable, int]) -> int:
   ret = a.substitute({k:NumNode(v) for k, v in var_vals.items()})
   assert isinstance(ret, NumNode), f"sym_infer didn't produce NumNode from {a} with {var_vals}"
   return ret.b
+
+def nodify(a: Union[Node, int]) -> Node: return NumNode(a) if isinstance(a, int) else a
 
 # symbolic int, these are allowed in a Tensor shape
 sint = Union[int, Variable, MulNode, SumNode]
