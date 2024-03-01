@@ -108,7 +108,7 @@ def beam_search(lin:Linearizer, rawbufs, amt:int, allow_test_size=True) -> Linea
   default_parallel = 1 if lin.opts.device in {"CUDA", "HIP"} else 0
   if beam_pool is None and getenv("PARALLEL", default_parallel): beam_pool = multiprocessing.Pool(multiprocessing.cpu_count(), _init_worker)
 
-  print(f"{default_parallel=}, {getenv("PARALLEL", default_parallel)=}")
+  print(f"{default_parallel=}, {getenv('PARALLEL', default_parallel)=}")
   print(f"{beam_pool=}")
 
   try:
