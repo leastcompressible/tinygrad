@@ -68,7 +68,7 @@ class PythonProgram:
         if uop is UOps.STORE:
           assert len(inp) <= 3, "gated stores not supported yet"
           if isinstance(dtp[0], ImageDType):
-            raise AssertionError(inp)
+            # raise AssertionError(inp)
             # image store
             assert dtp[2].count == 4
             for j,val in enumerate(inp[2]):
