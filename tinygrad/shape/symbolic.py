@@ -39,7 +39,12 @@ class Node:
   def __le__(self, b:Union[Node,int]): return self < (b+1)
   def __gt__(self, b:Union[Node,int]): return (-self) < (-b)
   def __ge__(self, b:Union[Node,int]): return (-self) < (-b+1)
-  def __lt__(self, b:Union[Node,int]): return create_node(LtNode(self, b))
+  def __lt__(self, b:Union[Node,int]):
+    diff = self - b
+    if diff.max < 0: return True
+    if diff.min >= 0: return False
+    raise ValueError(f"comparison not defined, {self=}, {b=}, {diff=}")
+    
   def __mul__(self, b:Union[Node, int]):
     if b == 0: return NumNode(0)
     if b == 1: return self
@@ -112,7 +117,7 @@ class Node:
 class Variable(Node):
   def __new__(cls, *args):
     expr, nmin, nmax = args
-    assert nmin >= 0 and nmin <= nmax, f"invalid Variable {expr=} {nmin=} {nmax=}"
+    assert nmin >= 0 and (isinstance(nmax, int) or nmin <= nmax), f"invalid Variable {expr=} {nmin=} {nmax=}"
     if nmin == nmax: return NumNode(nmin)
     return super().__new__(cls)
 

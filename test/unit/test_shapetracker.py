@@ -742,7 +742,7 @@ class TestShapeTrackerSize(unittest.TestCase):
 
   def test_shrink_size_axis_0_variable(self):
     st = ShapeTracker.from_shape((100, 100))
-    st = st.shrink(((0, Variable("a", 0, 50)), (0, 100)))
+    st = st.shrink(((0, Variable("a", 1, 50)), (0, 100)))
     self.assertEqual(st.real_size(), 50*100)
 
   def test_shrink_size_axis_1(self):

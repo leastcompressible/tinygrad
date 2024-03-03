@@ -92,7 +92,7 @@ class View:
     # if any dimension has size >1, but is masked such that only one index in the dimension is unmasked
     # then its stride can also be set to 0, albeit with a corresponding adjustment required to the offset
     # TODO: assert comparison with LtNode to avoid mis-using symbolic
-    if mask and any(elim := [not (b+1 < e) for b,e in mask]):
+    if mask and any(elim := [isinstance(b, int) and isinstance(e, int) and (b>e) for b,e in mask]):
       if any(not (b < e) for b,e in mask):
         strides, offset, mask = (0,) * len(shape), 0, ((0,0),) * len(shape)
       offset += sum((strides[i] * mask[i][0]) if e else 0 for i, e in enumerate(elim))
@@ -149,7 +149,7 @@ class View:
 
   @functools.lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none
   def shrink(self, arg: Tuple[Tuple[sint, sint], ...]) -> View:
-    assert all((0<=b<=e<=s) for s,(b,e) in zip(self.shape,arg)) and len(arg) == len(self.shape), f"invalid shrink {arg} for {self.shape}"
+    assert all(not all_int([b,e,s]) or (0<=b<=e<=s) for s,(b,e) in zip(self.shape,arg)) and len(arg) == len(self.shape), f"invalid shrink {arg} for {self.shape}"
     return self.__unsafe_resize(arg)
 
   @functools.lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none

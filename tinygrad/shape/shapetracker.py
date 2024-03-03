@@ -47,7 +47,7 @@ def merge_views(vm2:View, vm1:View) -> Optional[View]:
   for term, s, o in zip(reversed(terms), reversed(vm2.shape), reversed(origin)):
     merged_term += Variable.sum([idxs[d1] * (s1 * merged_size) for d1, s1 in term]) + o * merged_size
     merged_size *= s
-    if not (merged_term >= merged_size) and not (merged_term < 0):
+    if isinstance(merged_term, int) and 0 <= merged_term < merged_size:
       extents.append((merged_size, merged_term))
       merged_size, merged_term = 1, NumNode(0)
   if merged_term: return None
