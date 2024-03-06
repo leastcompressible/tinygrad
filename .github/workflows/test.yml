@@ -305,6 +305,8 @@ jobs:
       run: METAL=1 DEBUG=3 python test/test_ops.py TestOps.test_big_gemm
     - name: Test LLaMA compile speed
       run: PYTHONPATH="." METAL=1 python test/external/external_test_speed_llama.py
+    - name: Test GPU dtype
+      run: GPU=1 python -m pytest -n=auto test/test_dtype.py test/test_dtype_alu.py test_dtype_default_half.py
     - name: Fuzz Test linearizer
       run: PYTHONPATH="." METAL=1 CACHELEVEL=0 FUZZ_BEAM=1 DEPTH=2 FUZZ_N=48 FUZZ_MAX_SIZE=10000000 python test/external/fuzz_linearizer.py
 
