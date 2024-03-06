@@ -296,7 +296,7 @@ jobs:
         METAL=1 python -c "from tinygrad import Device; assert Device.DEFAULT == 'METAL', Device.DEFAULT"
         METAL=1 DEBUG=4 FORWARD_ONLY=1 python3 test/test_ops.py TestOps.test_add
     - name: Test GPU dtype
-      run: GPU=1 python -m pytest -n=auto test/test_dtype.py test/test_dtype_alu.py test_dtype_default_half.py
+      run: GPU=1 python -m pytest -rA -n=auto test/test_dtype.py test/test_dtype_alu.py test/test_dtype_default_half.py
     - name: Run metal test
       run: JIT=2 METAL=1 python -m pytest -n=auto test/ --ignore=test/external --ignore=test/models --durations=20
     - name: Run ONNX
