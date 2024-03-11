@@ -39,6 +39,9 @@ def merge_views(vm2:View, vm1:View) -> Optional[View]:
       terms[d2].append((d1, s1))
       strides[d1] += s1 * vm2.strides[d2]
 
+  if not vm2.mask and vm1.offset == 0 and None not in (rstrides := ShapeTracker((vm2, vm1)).real_strides()):
+    assert rstrides == tuple(strides), f"{rstrides=}, {tuple(strides)=}"
+
   # Merge dimensions in vm2 if required.
   # NB: Merging too many dimensions can make it difficult to project vm2's mask, hence only combining when required.
   idxs: List[Node] = [Variable(f"idx{i}", 0, s-1) for i,s in enumerate(vm1.shape)]
