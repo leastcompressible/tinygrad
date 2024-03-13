@@ -14,7 +14,7 @@ core_dtypes = list(DTYPES_DICT.values())
 if Device.DEFAULT == "CPU": core_dtypes.remove(dtypes.bfloat16)  # NOTE: this is for teenygrad, don't remove
 floats = [dt for dt in core_dtypes if dtypes.is_float(dt)]
 def is_dtype_supported(dtype: DType, device: str = Device.DEFAULT):
-  if dtype == dtypes.bfloat16: return False # numpy doesn't support bf16, tested separately in TestBFloat16DType
+  # if dtype == dtypes.bfloat16: return False # numpy doesn't support bf16, tested separately in TestBFloat16DType
   if device in ["WEBGPU", "WEBGL"]: return dtype in [dtypes.float, dtypes.int32, dtypes.uint32]
   # for CI GPU, cl_khr_fp16 isn't supported
   # for CI LLVM, it segfaults because it can't link to the casting function
@@ -127,7 +127,7 @@ def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   _assert_eq(Tensor([[1,2],[3,4]], dtype=a_dtype)@Tensor.eye(2, dtype=b_dtype), target_dtype, [[1,2],[3,4]])
   _assert_eq(Tensor([1,1,1,1], dtype=a_dtype)+Tensor.ones((4,4), dtype=b_dtype), target_dtype, 2*Tensor.ones(4,4).numpy())
 
-@unittest.skipUnless(Device.DEFAULT in ["LLVM", "HIP"], "bfloat16 not supported")
+# @unittest.skipUnless(Device.DEFAULT in ["LLVM", "HIP"], "bfloat16 not supported")
 class TestBFloat16DType(unittest.TestCase):
   def test_bf16_to_float(self):
     with self.assertRaises(AssertionError):
@@ -145,7 +145,7 @@ class TestBFloat16DType(unittest.TestCase):
     back = t.cast(dtypes.float32)
     assert tuple(back.numpy().tolist()) == (9984., -1, -1000, -9984, 20)
 
-@unittest.skipUnless(Device.DEFAULT in ["HIP"], "bfloat16 not supported")
+# @unittest.skipUnless(Device.DEFAULT in ["HIP"], "bfloat16 not supported")
 class TestBFloat16DTypeCast(unittest.TestCase):
   def test_f16_to_bf16_conversion(self):
     original_tensor = Tensor([1.0, 2.0, 3.0], dtype=dtypes.float16)
