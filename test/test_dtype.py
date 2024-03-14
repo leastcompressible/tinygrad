@@ -1,4 +1,4 @@
-import unittest, operator, sys
+import unittest, operator, sys, functools
 import numpy as np
 import torch
 from typing import Any, List
@@ -13,8 +13,17 @@ settings.load_profile("my_profile")
 core_dtypes = list(DTYPES_DICT.values())
 if Device.DEFAULT == "CPU": core_dtypes.remove(dtypes.bfloat16)  # NOTE: this is for teenygrad, don't remove
 floats = [dt for dt in core_dtypes if dtypes.is_float(dt)]
+@functools.lru_cache(None)
 def is_dtype_supported(dtype: DType, device: str = Device.DEFAULT):
-  if dtype == dtypes.bfloat16: return False # numpy doesn't support bf16, tested separately in TestBFloat16DType
+  if dtype == dtypes.bfloat16:
+    try:
+      a = Tensor([1], dtype=dtypes.bfloat16).realize()
+      a = a.float().realize()
+      a = a.cast(dtypes.bfloat16).realize()
+      return True
+    except Exception as e:
+      print(f"bfloat16 not supported on {device}! {e}")
+      return False
   if device in ["WEBGPU", "WEBGL"]: return dtype in [dtypes.float, dtypes.int32, dtypes.uint32]
   # for CI GPU, cl_khr_fp16 isn't supported
   # for CI LLVM, it segfaults because it can't link to the casting function
@@ -128,6 +137,7 @@ def _test_ops(a_dtype:DType, b_dtype:DType, target_dtype=None):
   _assert_eq(Tensor([1,1,1,1], dtype=a_dtype)+Tensor.ones((4,4), dtype=b_dtype), target_dtype, 2*Tensor.ones(4,4).numpy())
 
 @unittest.skipUnless(Device.DEFAULT in ["LLVM", "HIP", "METAL"], "bfloat16 not supported")
+@unittest.skipUnless(is_dtype_supported(dtypes.bfloat16), "bfloat16 not supported")
 class TestBFloat16(unittest.TestCase):
   def test_bf16_creation_numpy(self):
     data = [-1, 1, 2]
