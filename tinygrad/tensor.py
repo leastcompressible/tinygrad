@@ -90,7 +90,9 @@ class Tensor:
     # internal variables used for autograd graph construction
     self._ctx: Optional[Function] = None
     if isinstance(data, LazyBuffer): assert dtype is None or dtype == data.dtype, "dtype doesn't match, and casting isn't supported"
-    elif isinstance(data, get_args(Scalar)): data = _loadop(LoadOps.CONST, tuple(), dtype or dtypes.from_py(data), device, data)
+    elif isinstance(data, get_args(Scalar)):
+      if dtype == dtypes.bfloat16: data = Tensor(_loadop(LoadOps.CONST, tuple(), dtypes.float, device, data)).cast(dtypes.bfloat16).lazydata
+      else: data = _loadop(LoadOps.CONST, tuple(), dtype or dtypes.from_py(data), device, data)
     elif isinstance(data, bytes): data = _fromcpu(np.frombuffer(data, np.uint8))
     elif data is None: data = _loadop(LoadOps.EMPTY, (0,), dtype or dtypes.default_float, device)
     elif isinstance(data, list):
@@ -181,7 +183,8 @@ class Tensor:
     assert self.numel() == 1, "must have one element for item"
     return self._data().cast(self.dtype.fmt)[0]
   def numpy(self) -> np.ndarray:
-    if self.dtype == dtypes.bfloat16: return self.float().numpy()
+    # TODO: remove realize with full bf16 cast support
+    if self.dtype == dtypes.bfloat16: return self.realize().float().numpy()
     assert self.dtype.np is not None, f"no np dtype for {self.dtype}"
     assert all_int(self.shape), f"no data if shape is symbolic, {self.shape=}"
     return np.frombuffer(self._data(), dtype=self.dtype.np).reshape(self.shape)
