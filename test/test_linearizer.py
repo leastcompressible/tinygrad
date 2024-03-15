@@ -14,6 +14,7 @@ from tinygrad.realize import create_schedule, run_schedule
 from tinygrad.helpers import prod, Context
 from tinygrad.dtype import DType, dtypes
 from tinygrad.codegen.uops import UOpGraph
+from test.helpers import is_dtype_supported
 
 class TestLinearizer(unittest.TestCase):
   def test_arg_dedup(self):
@@ -185,6 +186,7 @@ class TestLinearizer(unittest.TestCase):
     if not Device[Device.DEFAULT].compiler.linearizer_opts.has_tensor_cores:
       self.skipTest("device doesn't have tensor cores")
     for tc in tensor_cores[Device[Device.DEFAULT].compiler.linearizer_opts.device]:
+      if not is_dtype_supported(tc.dtype_in) or not is_dtype_supported(tc.dtype_out): continue
       a, b = Tensor.rand(tc.dims[1], tc.dims[2], dtype=tc.dtype_in), Tensor.rand(tc.dims[2], tc.dims[0], dtype=tc.dtype_in)
       np_a, np_b = a.numpy(), b.numpy()
       r = a.matmul(b, acc_dtype=tc.dtype_out)
@@ -682,6 +684,10 @@ class TestLinearizerOpts(unittest.TestCase):
     N = 128
     Tensor.manual_seed(1552)
     for tc in tensor_cores[Device[Device.DEFAULT].compiler.linearizer_opts.device]:
+      if tc.dtype_in == dtypes.bfloat16 or tc.dtype_out == dtypes.bfloat16:
+        # TODO: test does not support bfloat16
+        continue
+
       a, b = Tensor.rand(N, N, dtype=tc.dtype_in), Tensor.rand(N, N, dtype=tc.dtype_in)
       r = a.matmul(b, acc_dtype=tc.dtype_out)
       (atol, rtol) = ((0.25, 0.01) if tc.dtype_out == dtypes.half else (3e-2, 1e-3)) if tc.dtype_in == dtypes.half else (1e-4, 1e-4)

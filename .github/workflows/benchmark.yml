@@ -151,6 +151,8 @@ jobs:
         LD_PRELOAD="/opt/rocm/lib/libhsa-runtime64.so" HSA=1 BIG=2 TORCHCUDA=1 python3 test/test_speed_v_torch.py | tee torch_speed.txt
     - name: Run Tensor Core GEMM
       run: HSA=1 HALF=1 DEBUG=2 python3 extra/gemm/simple_matmul.py | tee matmul.txt
+    - name: Run Tensor Core BF16 GEMM
+      run: HSA=1 BF16=1 DEBUG=2 python3 extra/gemm/simple_matmul.py | tee matmul_bf16.txt
     - name: Run Stable Diffusion
       run: HSA=1 python3 examples/stable_diffusion.py --seed 0 --noshow --timing | tee sd.txt
     - name: Run LLaMA 7B
@@ -183,6 +185,7 @@ jobs:
           gpt2_unjitted.txt
           gpt2_jitted.txt
           matmul.txt
+          matmul_bf16.txt
           sd.txt
           mixtral.txt
 
