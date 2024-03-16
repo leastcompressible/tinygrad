@@ -55,10 +55,12 @@ class ht:
 
 def universal_test(a, b, dtype, op):
   if not isinstance(op, tuple): op = (op, op)
-  tensor_value = (op[0](Tensor([a], dtype=dtype), Tensor([b], dtype=dtype))).numpy()
-  numpy_value = op[1](np.array([a]).astype(dtype.np), np.array([b]).astype(dtype.np))
-  if dtype in dtypes_float: np.testing.assert_allclose(tensor_value, numpy_value, atol=1e-10)
-  else: np.testing.assert_equal(tensor_value, numpy_value)
+  tinygrad_output = op[0](Tensor([a], dtype=dtype), Tensor([b], dtype=dtype))
+  numpy_output = op[1](np.array([a]).astype(dtype.np), np.array([b]).astype(dtype.np))
+  if tinygrad_output.is_floating_point():
+    np.testing.assert_allclose(tinygrad_output.numpy(), numpy_output, atol=1e-10)
+  else:
+    np.testing.assert_equal(tinygrad_output.numpy(), numpy_output)
 
 def universal_test_unary(a, dtype, op):
   if not isinstance(op, tuple): op = (op, op)
@@ -66,9 +68,10 @@ def universal_test_unary(a, dtype, op):
   ast = create_schedule([out.lazydata])[-1].ast[0]
   tensor_value = out.numpy()
   numpy_value = op[1](np.array([a]).astype(dtype.np))
-  if dtype in dtypes_float:
+  if out.is_floating_point():
     np.testing.assert_allclose(tensor_value, numpy_value, atol=1e-3, rtol=1e-2)
-  else: np.testing.assert_equal(tensor_value, numpy_value)
+  else:
+    np.testing.assert_equal(tensor_value, numpy_value)
   if op[0] != Tensor.reciprocal: # reciprocal is not supported in most backends
     op = [x for x in ast.lazyops if x.op in UnaryOps][0]
     assert get_lazyop_info(op).dtype == dtype
