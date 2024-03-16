@@ -232,6 +232,31 @@ class TestLinearizer(unittest.TestCase):
     assert not any(u.arg == TernaryOps.WHERE for u in lin.uops), "found where where where should be folded"
     np.testing.assert_equal(a.flatten().numpy(), [1.,1.,1.,1.,2.,2.,2.,2.,1.,1.,1.,1.,1.,1.,1.,1.])
 
+  def test_where_fold_variable(self):
+    a = Tensor.ones(2, 8).contiguous().realize()
+    v = Variable("v", 0, 4).bind(0)
+    b = a.shrink((None, (v, v+1), None)).pad((None, (v, 8-v-1)))
+
+    a.assign(b.where(2, a))
+    sched = create_schedule([a.lazydata])
+    assert len(sched) == 1
+    # passes without any opt
+    lin = Linearizer(*sched[-1].ast)
+    lin.linearize()
+    assert not any(u.arg == TernaryOps.WHERE for u in lin.uops), "found where where where should be folded"
+    np.testing.assert_equal(a.numpy(), np.array([[2, 1, 1, 1, 1, 1, 1, 1], [2, 1, 1, 1, 1, 1, 1, 1]]))
+
+    a.assign(b.where(3, a))
+    sched = create_schedule([a.lazydata])
+    assert len(sched) == 1
+    # does not fold if where is upcasted
+    lin = Linearizer(*sched[-1].ast)
+    lin.apply_opt(Opt(op=OptOps.UPCAST, axis=1, amt=4))
+    lin.linearize()
+    with self.assertRaises(AssertionError):
+      assert not any(u.arg == TernaryOps.WHERE for u in lin.uops), "found where where where should be folded"
+    np.testing.assert_equal(a.numpy(), np.array([[3, 1, 1, 1, 1, 1, 1, 1], [3, 1, 1, 1, 1, 1, 1, 1]]))
+
   def test_simplify_uop(self):
     def helper_test_simplify(uop, dtype, vin, arg=None):
       ast = LazyOp(BufferOps.CONST, (),
