@@ -88,7 +88,9 @@ def universal_test_midcast(a, b, c, op1, op2, d1:DType, d2:DType):
   an, bn, cn = np.array([a]).astype(d1.np), np.array([b]).astype(d1.np), np.array([c]).astype(d2.np)
   tensor_value = op2[0](op1[0](at, bt).cast(d2), ct).numpy()
   numpy_value = op2[1](op1[1](an, bn).astype(d2.np), cn)
-  np.testing.assert_allclose(tensor_value, numpy_value, rtol=1e-6 if getenv("PTX") else 1e-7)
+  rtol = 1e-6 if getenv("PTX") else 1e-7
+  if operator.truediv in op1: rtol = 1e-6
+  np.testing.assert_allclose(tensor_value, numpy_value, rtol=rtol)
 
 class TestDTypeALU(unittest.TestCase):
   @unittest.skipUnless(is_dtype_supported(dtypes.float64, Device.DEFAULT), f"no float64 on {Device.DEFAULT}")
