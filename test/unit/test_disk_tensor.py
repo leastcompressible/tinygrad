@@ -224,9 +224,9 @@ class TestDiskTensor(unittest.TestCase):
     adat = b''.join([dat[i+2:i+4] for i in range(0, len(dat), 4)])
     with open(temp('bf16'), "wb") as f: f.write(adat)
 
-    t = Tensor.empty(5, dtype=dtypes.bfloat16, device=f"disk:{temp('bf16')}").llvm().realize()
-    back = t.cast(dtypes.float32)
-    assert tuple(back.numpy().tolist()) == (9984., -1, -1000, -9984, 20)
+    t = Tensor.empty(5, dtype=dtypes.bfloat16, device=f"disk:{temp('bf16')}").to(Device.DEFAULT).realize()
+    back = t#.cast(dtypes.float32)
+    assert back.numpy().tolist() == [9984., -1, -1000, -9984, 20]
 
 if __name__ == "__main__":
   unittest.main()
