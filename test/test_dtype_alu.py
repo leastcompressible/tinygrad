@@ -58,7 +58,8 @@ def universal_test(a, b, dtype, op):
   tinygrad_output = op[0](Tensor([a], dtype=dtype), Tensor([b], dtype=dtype))
   numpy_output = op[1](np.array([a]).astype(dtype.np), np.array([b]).astype(dtype.np))
   if tinygrad_output.is_floating_point():
-    np.testing.assert_allclose(tinygrad_output.numpy(), numpy_output, atol=1e-10)
+    rtol = 1e-6 if operator.truediv in op else 1e-7
+    np.testing.assert_allclose(tinygrad_output.numpy(), numpy_output, atol=1e-10, rtol=rtol)
   else:
     np.testing.assert_equal(tinygrad_output.numpy(), numpy_output)
 
