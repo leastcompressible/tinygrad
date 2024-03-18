@@ -163,7 +163,7 @@ class PythonProgram:
             def c_map(lane, elem): # (i, j), C, D (2 elements on 32 threads): row major same as A/B
               return (elem + ((lane%2)*2) + ((lane//8)%2)*4, ((lane//2)%4) + (lane//16)*4)
             ul[i] = wmma_helper(32, 8, 2, 2, 2, a_b_elem, a_b_elem, c_map)
-          elif arg == '__builtin_amdgcn_wmma_f32_16x16x16_f16_w32' or arg == '__hip_wmma_f16_f16':
+          elif arg == '__builtin_amdgcn_wmma_f32_16x16x16_f16_w32' or arg == '__amd_wmma_f16_f16':
             def a_elem(x, i, j, goff): # A (16 elements on 32 threads): col major, lane 16-32 == lane 0-15
               assert x[i][goff+j] == x[i][goff+j+16], "warp elements not duplicated properly across lanes"
               return x[i][goff+j]
@@ -188,7 +188,7 @@ class PythonProgram:
 
 class PythonCompiler(Compiler):
   linearizer_opts = LinearizerOptions("METAL", has_tensor_cores=True) if getenv("EMULATE_METAL") else \
-    (LinearizerOptions("HIP", has_tensor_cores=True) if getenv("EMULATE_HIP") else \
+    (LinearizerOptions("HSA", has_tensor_cores=True) if getenv("EMULATE_HSA") else \
     (LinearizerOptions("CUDA", has_tensor_cores=True) if getenv("EMULATE_CUDA") else LinearizerOptions("PYTHON")))
   def render(self, name:str, uops:UOpGraph) -> str:
     lops = [(u.uop, u.dtype, [uops.uops.index(v) for v in u.vin], u.arg) for u in uops]

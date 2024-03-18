@@ -381,7 +381,7 @@ class UOpGraph:
         mem += u.vin[2].dtype.itemsize * mults
       elif u.uop is UOps.WMMA:
         if u.arg.startswith("__metal_wmma"): flops += 2*(8*8*8)//32 * mults
-        elif u.arg == "__hip_wmma_f16_f16" or u.arg == "__builtin_amdgcn_wmma_f32_16x16x16_f16_w32": flops += 2*(16*16*16)//32 * mults
+        elif u.arg == "__amd_wmma_f16_f16" or u.arg == "__builtin_amdgcn_wmma_f32_16x16x16_f16_w32": flops += 2*(16*16*16)//32 * mults
         elif u.arg == "__cuda_mma_m16n8k16_f16_f32": flops += 2*(8*16*16)//32 * mults
         else: raise Exception("not implemented")
     return flops, mem
