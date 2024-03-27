@@ -85,8 +85,7 @@ class PythonProgram:
           elif arg[1][0] == 'l':
             ul[i] = [x[2-arg[0]] for x in warp]
         elif uop is UOps.CONST:
-          casted_arg = int(arg) if dtypes.is_int(dtype) else float(arg)
-          ul[i] = [[casted_arg] * warp_size for _ in range(dtype.count)] if dtype.count > 1 else [casted_arg] * warp_size
+          ul[i] = [[arg] * warp_size for _ in range(dtype.count)] if dtype.count > 1 else [arg] * warp_size
         elif uop is UOps.DEFINE_ACC:
           ul[i] = [[arg] * warp_size for _ in range(dtype.count)] if dtype.count > 1 else [arg] * warp_size
         elif uop is UOps.LOOP:
