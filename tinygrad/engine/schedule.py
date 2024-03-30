@@ -33,7 +33,9 @@ def _recursive_lazyop(buf:LazyBuffer, membufs:List[LazyBuffer], var_vals:Dict[Va
 
   # consts are always fused and generated
   if buf.op is LoadOps.CONST:
+    no_simp_st, no_simp_var_vals = st.unbind()
     unbound_st, st_var_vals = st.simplify().unbind()
+    assert no_simp_st == unbound_st and no_simp_var_vals == st_var_vals, f"{no_simp_st=}, {unbound_st=}"
     var_vals.update(st_var_vals)
     return LazyOp(BufferOps.CONST, (), ConstBuffer(buf.arg, buf.dtype, unbound_st))
 
