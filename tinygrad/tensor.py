@@ -1108,7 +1108,6 @@ class Tensor:
   def log2(self): return self.log()/math.log(2)
   def exp(self): return F.Exp.apply(self.cast(least_upper_float(self.dtype)))
   def exp2(self): return F.Exp.apply(self*math.log(2))
-  def relu(self): return F.Relu.apply(self)
   def sigmoid(self): return F.Sigmoid.apply(self.cast(least_upper_float(self.dtype)))
   def sin(self): return F.Sin.apply(self.cast(least_upper_float(self.dtype)))
   def sqrt(self): return F.Sqrt.apply(self.cast(least_upper_float(self.dtype)))
@@ -1132,6 +1131,7 @@ class Tensor:
 
   # ***** activation functions (unary) *****
 
+  def relu(self): return (self.detach() > 0).where(self, 0)
   def elu(self, alpha=1.0): return self.relu() - alpha*(1-self.exp()).relu()
   def celu(self, alpha=1.0): return self.maximum(0) + (alpha * ((self / alpha).exp() - 1)).minimum(0)
   def swish(self): return self * self.sigmoid()
