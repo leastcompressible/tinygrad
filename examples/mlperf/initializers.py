@@ -51,9 +51,9 @@ class EmbeddingBert(nn.Embedding):
   def __call__(self, idx:Tensor) -> Tensor:
     if idx.numel() == 0: return Tensor.empty(idx.shape+(self.embed_sz,), dtype=self.weight.dtype, device=self.weight.device)
     arange_shp, weight_shp, big_shp = (1, 1, self.vocab_sz, 1), (1, 1, self.vocab_sz, self.embed_sz), idx.shape+(self.vocab_sz, self.embed_sz,)
-    if not hasattr(self, 'arange'): self.arange = Tensor.arange(self.vocab_sz, requires_grad=False, dtype=self.weight.dtype, device=self.weight.device).reshape(arange_shp)
-    arange, idx, vals = self.arange.cast(dtypes.default_float).expand(big_shp), idx.cast(dtypes.default_float).reshape(idx.shape+(1, 1,)).expand(big_shp), self.weight.cast(dtypes.default_float).reshape(weight_shp).expand(big_shp)
-    return (arange == idx).mul(vals).sum(2)
+    if not hasattr(self, 'arange'): self.arange = Tensor.arange(self.vocab_sz, requires_grad=False, device=self.weight.device).reshape(arange_shp)
+    arange, idx, vals = self.arange.expand(big_shp), idx.reshape(idx.shape+(1, 1,)).expand(big_shp), self.weight.cast(dtypes.default_float).reshape(weight_shp).expand(big_shp)
+    return (arange == idx).mul(vals).sum(2, acc_dtype=vals.dtype)
 
 class LayerNormBert:
   def __init__(self, normalized_shape:Union[int, Tuple[int, ...]], eps:float=1e-12, elementwise_affine:bool=True):
@@ -63,6 +63,6 @@ class LayerNormBert:
 
   def __call__(self, x:Tensor):
     assert self.normalized_shape == x.shape[-len(self.normalized_shape):], f"last dimensions of {x.shape} must match {self.normalized_shape}"
-    x = x.layernorm(eps=self.eps, axis=self.axis)
-    if not self.elementwise_affine: return x
-    return x.cast(dtypes.default_float) * self.weight.cast(dtypes.default_float) + self.bias.cast(dtypes.default_float)
+    xn = x.float().layernorm(eps=self.eps, axis=self.axis)
+    if not self.elementwise_affine: return xn.cast(x.dtype)
+    return (xn * self.weight + self.bias).cast(x.dtype)

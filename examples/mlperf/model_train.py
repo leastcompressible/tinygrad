@@ -265,14 +265,17 @@ def train_bert():
   for x in GPUS: Device[x]
   seed = config["seed"] = getenv("SEED", 12345)
 
+  TRAIN_BEAM = getenv("TRAIN_BEAM", BEAM.value)
+  EVAL_BEAM = getenv("EVAL_BEAM", BEAM.value)
+
   # ** hyperparameters **
   epochs             = config["epochs"]                 = getenv("EPOCHS", 1)
   BS                 = config["GLOBAL_BATCH_SIZE"]      = getenv("GLOBAL_BATCH_SIZE", 29 * len(GPUS)) # FP32 6 GPUS -> BS24
   EVAL_BS            = config["EVAL_BS"]                = getenv("EVAL_BS", 2)
-  max_lr             = config["OPT_BASE_LEARNING_RATE"] = getenv("OPT_BASE_LEARNING_RATE", 1e-4)
+  max_lr             = config["OPT_BASE_LEARNING_RATE"] = getenv("OPT_BASE_LEARNING_RATE", 0.00035/256 * BS)
 
-  train_steps        = config["TRAIN_STEPS"]            = getenv("TRAIN_STEPS", 100000)
-  warmup_steps       = config["NUM_WARMUP_STEPS"]       = getenv("NUM_WARMUP_STEPS", 10000)
+  train_steps        = config["TRAIN_STEPS"]            = getenv("TRAIN_STEPS", 3_500_000 // BS)
+  warmup_steps       = config["NUM_WARMUP_STEPS"]       = getenv("NUM_WARMUP_STEPS", train_steps // 10)
   start_warmup_steps = config["START_WARMUP_STEPS"]     = getenv("START_WARMUP_STEPS", 0)
   max_eval_steps     = config["MAX_EVAL_STEPS"]         = getenv("MAX_EVAL_STEPS", 100)
   eval_step_freq     = config["EVAL_STEP_FREQ"]         = int((math.floor(0.05 * (230.23 * BS + 3000000) / 25000) * 25000) / BS) # Round down
@@ -286,7 +289,8 @@ def train_bert():
   target, achieved                                      = getenv("TARGET", 0.72), False
 
   config["DEFAULT_FLOAT"] = dtypes.default_float.name
-  config["BEAM"]    = BEAM.value
+  config["BEAM"]          = BEAM.value
+  config["TRAIN_BEAM"]    = TRAIN_BEAM
 
   Tensor.manual_seed(seed)  # seed for weight initialization
 
@@ -310,7 +314,7 @@ def train_bert():
 
   # ** Log hparams **
   for key, value in config.items():
-      print(f'HParam: "{key}": {value}')
+    print(f'HParam: "{key}": {value}')
 
   # ** Optimizer **
   skip_list = [v for k, v in get_state_dict(model).items() if "bias" in k or "LayerNorm" in k]
@@ -341,18 +345,20 @@ def train_bert():
 
   @TinyJit
   def train_step(input_ids:Tensor, segment_ids:Tensor, attention_mask:Tensor, masked_positions:Tensor, masked_lm_ids:Tensor, masked_lm_weights:Tensor, next_sentence_labels:Tensor):
-    lm_logits, clsf_logits = model(input_ids, segment_ids, attention_mask, masked_positions)
-    lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=masked_lm_weights)
-    clsf_loss = clsf_logits.binary_crossentropy_logits(next_sentence_labels)
-    loss = lm_loss + clsf_loss
+    with Context(BEAM=TRAIN_BEAM):
+      lm_logits, clsf_logits = model(input_ids, segment_ids, attention_mask, masked_positions)
+      lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=masked_lm_weights)
+      clsf_loss = clsf_logits.binary_crossentropy_logits(next_sentence_labels)
+      loss = lm_loss + clsf_loss
 
-    if not getenv('DISABLE_BACKWARD', 0):
-      optimizer_group.zero_grad()
-      loss.backward()
+      if not getenv('DISABLE_BACKWARD', 0):
+        optimizer_group.zero_grad()
+        loss.backward()
 
-      optimizer_group.step()
-      scheduler.step()
-    return loss.realize()
+        optimizer_group.step()
+        scheduler.step()
+      return loss.realize()
+
   @TinyJit
   def eval_step(input_ids:Tensor, segment_ids:Tensor, attention_mask:Tensor, masked_positions:Tensor, masked_lm_ids:Tensor, masked_lm_weights:Tensor, next_sentence_labels:Tensor):
     lm_logits, clsf_logits = model(input_ids, segment_ids, attention_mask, masked_positions)

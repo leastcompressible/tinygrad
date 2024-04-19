@@ -212,7 +212,8 @@ def get_mlperf_bert_model(config_path:str):
     config["num_attention_heads"], 
     config["num_hidden_layers"], 
     config["type_vocab_size"], 
-    config["vocab_size"], 
+    config["vocab_size"],
+    # 0.0, 0.0,
     config["attention_probs_dropout_prob"], 
     config["hidden_dropout_prob"]
   )

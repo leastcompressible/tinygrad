@@ -341,7 +341,7 @@ def process_iterate(tokenizer, val=False, part=0): # Convert raw text to masked 
 
 def get_val_files(): return sorted(list((BASEDIR / "eval/").glob("*.pkl")))
 
-@diskcache
+# @diskcache
 def get_train_files(): return sorted(list((BASEDIR / "train/").glob("*/*.pkl")))
 
 if __name__ == "__main__":
