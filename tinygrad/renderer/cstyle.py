@@ -26,7 +26,7 @@ class CStyleLanguage(NamedTuple):
   type_map: Dict[DType, str] = {}
   code_for_op: Dict = {
     UnaryOps.NEG: lambda x,dtype: f"(!{x})" if dtype is dtypes.bool else f"(-{x})", UnaryOps.SQRT: lambda x,dtype: f"sqrt({x})",
-    UnaryOps.EXP2: lambda x,dtype: f"exp2({x})", UnaryOps.LOG2: lambda x,dtype: f"log2({x})", UnaryOps.SIN: lambda x,dtype: f"sin({x})",
+    UnaryOps.EXP2M1: lambda x,dtype: f"(exp2({x})-1)", UnaryOps.LOG21P: lambda x,dtype: f"log2({x}+1)", UnaryOps.SIN: lambda x,dtype: f"sin({x})",
     BinaryOps.ADD: lambda a,b,dtype: f"({a}+{b})", BinaryOps.SUB: lambda a,b,dtype: f"({a}-{b})", BinaryOps.MUL: lambda a,b,dtype: f"({a}*{b})",
     BinaryOps.DIV: lambda a,b,dtype: f"({a}/{b})", BinaryOps.MAX: lambda a,b,dtype: f"max({a},{b})", BinaryOps.MOD: lambda a,b,dtype: f"({a}%{b})",
     BinaryOps.CMPLT: lambda a,b,dtype: f"({a}<{b})", BinaryOps.CMPEQ: lambda a,b,dtype: f"({a}=={b})", BinaryOps.XOR: lambda a,b,dtype: f"({a}^{b})",
@@ -207,8 +207,8 @@ class MetalLanguage(CStyleLanguage):
   code_for_op = {**CStyleLanguage().code_for_op,
     BinaryOps.MAX: lambda a,b,dtype: f"(bfloat)max((float){a},(float){b})" if dtype == dtypes.bfloat16 else f"max({a},{b})",
     UnaryOps.SQRT: lambda x,dtype: f"(bfloat)sqrt({x})" if dtype == dtypes.bfloat16 else f"sqrt({x})",
-    UnaryOps.EXP2: lambda x,dtype: f"(bfloat)exp2({x})" if dtype == dtypes.bfloat16 else f"exp2({x})",
-    UnaryOps.LOG2: lambda x,dtype: f"(bfloat)log2({x})" if dtype == dtypes.bfloat16 else f"log2({x})",
+    UnaryOps.EXP2M1: lambda x,dtype: f"(bfloat)(exp2({x})-1)" if dtype == dtypes.bfloat16 else f"(exp2({x})-1)",
+    UnaryOps.LOG21P: lambda x,dtype: f"(bfloat)log2({x}+1)" if dtype == dtypes.bfloat16 else f"log2({x}+1)",
     UnaryOps.SIN: lambda x,dtype: f"(bfloat)sin({x})" if dtype == dtypes.bfloat16 else f"sin({x})",}
 
   def render_cast(self, x: List[str], var_dtype: DType, bitcast=False) -> str:
@@ -226,8 +226,8 @@ MetalRenderer = functools.partial(uops_to_cstyle, MetalLanguage())
 code_for_op_half = {BinaryOps.MAX: lambda a,b,dtype: f"__hmax({a},{b})" if dtype in (dtypes.half, dtypes.bfloat16) else f"max({a},{b})",
                     UnaryOps.SQRT: lambda x,dtype: f"hsqrt({x})" if dtype in (dtypes.half, dtypes.bfloat16) else f"sqrt({x})",
                     UnaryOps.SIN: lambda x,dtype: f"hsin({x})" if dtype in (dtypes.half, dtypes.bfloat16) else f"sin({x})",
-                    UnaryOps.LOG2: lambda x,dtype: f"hlog2({x})" if dtype in (dtypes.half, dtypes.bfloat16) else f"log2({x})",
-                    UnaryOps.EXP2: lambda x,dtype: f"hexp2({x})" if dtype in (dtypes.half, dtypes.bfloat16) else f"exp2({x})",}
+                    UnaryOps.LOG21P: lambda x,dtype: f"(hlog2({x}+1)" if dtype in (dtypes.half, dtypes.bfloat16) else f"(log2({x}+1)",
+                    UnaryOps.EXP2M1: lambda x,dtype: f"(hexp2({x})-1)" if dtype in (dtypes.half, dtypes.bfloat16) else f"(exp2({x})-1)",}
 
 _nms = "xyzwabcdefghijkl"
 def _make_cuda_dtype(base_type, name, cnt):
@@ -269,8 +269,8 @@ CUDARenderer = functools.partial(uops_to_cstyle, CUDALanguage())
 
 code_for_op_hip = { UnaryOps.SQRT: lambda x,dtype: f"__ocml_sqrt_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x})",
                     UnaryOps.SIN: lambda x,dtype: f"__ocml_sin_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x})",
-                    UnaryOps.LOG2: lambda x,dtype: f"__ocml_log2_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x})",
-                    UnaryOps.EXP2: lambda x,dtype: f"__ocml_exp2_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x})",
+                    UnaryOps.LOG21P: lambda x,dtype: f"__ocml_log2_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x}+1)",
+                    UnaryOps.EXP2M1: lambda x,dtype: f"(__ocml_exp2_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32)}({x})-1)",
                     # TODO: MAX with int uses fmax_f32?
                     BinaryOps.MAX: lambda a,b,dtype: f"__ocml_fmax_f{ {dtypes.half:16, dtypes.double:64}.get(dtype, 32) }({a},{b})",}
 
