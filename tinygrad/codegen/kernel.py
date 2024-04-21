@@ -13,7 +13,7 @@ from enum import Enum, auto
 
 class OptOps(Enum):
   TC = auto(); UPCAST = auto(); UPCASTMID = auto(); UNROLL = auto(); LOCAL = auto() # noqa: E702
-  GROUP = auto(); GROUPTOP = auto(); NOLOCALS = auto(); PADTO = auto() # noqa: E702
+  GROUP = auto(); GROUPTOP = auto(); NOLOCALS = auto(); PADTO = auto(); SWAPREDUCE = auto() # noqa: E702
   def __lt__(self, x:OptOps): return self.value < x.value
 
 class KernelOptError(Exception): pass
@@ -412,9 +412,17 @@ class Kernel:
       return
 
     if opt.axis is not None:
-      axis = opt.axis + (self.first_reduce if opt.op is OptOps.UNROLL else (self.first_reduce+self.group_for_reduces if opt.op in [OptOps.GROUP, OptOps.GROUPTOP] else 0))  # noqa: E501
+      axis = opt.axis + (self.first_reduce if opt.op in {OptOps.UNROLL, OptOps.SWAPREDUCE} else (self.first_reduce+self.group_for_reduces if opt.op in [OptOps.GROUP, OptOps.GROUPTOP] else 0))  # noqa: E501
     else: axis = -1
     check(axis < len(self.full_shape), "invalid axis")
+
+    if opt.op is OptOps.SWAPREDUCE:
+      check(self.reduceop is not None, "need reduce")
+      check(self.first_reduce + self.group_for_reduces <= axis < axis + opt.amt < len(self.full_unupcasted_shape), "swapreduce not on reduce")
+      new_order = list(range(len(self.full_shape)))
+      new_order[axis], new_order[axis+opt.amt] = new_order[axis+opt.amt], new_order[axis]
+      self.reshape_and_permute(None, new_order)
+      return
 
     if opt.amt is not None:
       amt = opt.amt if opt.amt != 0 else self.full_shape[axis]

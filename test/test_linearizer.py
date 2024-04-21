@@ -813,6 +813,18 @@ class TestKernelOpts(unittest.TestCase):
     ]
     helper_linearizer_opt(r, [x[0] for x in opts_shapes], color_sizes=[x[1] for x in opts_shapes])
 
+  def test_swapreduce(self):
+    a = Tensor.rand(10, 11, 12).pad(((0, 1), (0, 1), (0, 1)))
+    helper_linearizer_opt(a.sum(), [
+      [Opt(OptOps.SWAPREDUCE, 0, 1)],
+      [Opt(OptOps.SWAPREDUCE, 0, 2)],
+      [Opt(OptOps.SWAPREDUCE, 1, 1)],
+    ])
+
+    a = Tensor.rand(10, 11, 12)
+    with self.assertRaises(KernelOptError):
+      helper_linearizer_opt(a.sum(), [[Opt(OptOps.SWAPREDUCE, 0, 1)],])
+
 class TestLinearizerHelper(unittest.TestCase):
   def test_num_node_expand(self):
     a = NumNode(42)
