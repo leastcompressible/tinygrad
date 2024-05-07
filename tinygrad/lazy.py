@@ -173,8 +173,9 @@ class LazyBuffer:
     # TODO: this logic should move to the scheduler
     if self.size == 0 and 0 not in new_shape: return self.const({ReduceOps.SUM: 0.0, ReduceOps.MAX: -math.inf}[op], new_shape)
 
+    acc_dt = None
     # upcast acc_dt here so if reduce is splitted, the intermediate dtype is upcasted
-    if op is ReduceOps.SUM and acc_dt is None: acc_dt = sum_acc_dtype(self.dtype)
+    if op is ReduceOps.SUM: acc_dt = sum_acc_dtype(self.dtype)
     if acc_dt is not None and acc_dt != self.dtype:
       # cast back to float16 or bfloat16 to match torch / jax behavior
       return self.cast(acc_dt).r(op, axis, acc_dt).cast(self.dtype if self.dtype in [dtypes.float16, dtypes.bfloat16] else acc_dt)
