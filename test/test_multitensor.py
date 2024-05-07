@@ -149,6 +149,14 @@ class TestMultiTensor(unittest.TestCase):
       a,b = _test_allreduce(Tensor.rand(256, 256))
       np.testing.assert_almost_equal(a.numpy(), b.numpy(), decimal=5)
 
+  def test_allreduce_sum_half(self):
+    # summing half, individual shard acc in float and cast back to half, and allreduce in half.
+    with Context(RING=0):
+      a = Tensor.rand(256, 256, dtype=dtypes.half).shard((d0, d1, d2, d3), axis=0)
+      print(a.dtype)
+      a.sum(0)
+
+
   def test_copy_jit(self):
     @TinyJit
     def copy_tensor(x:Tensor): return (x.to(f"{x.device.split(':')[0]}:1") + 1)
