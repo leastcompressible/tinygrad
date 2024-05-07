@@ -116,14 +116,14 @@ class MultiLazyBuffer:
   def r(self, op:ReduceOps, axis:Tuple[int, ...], acc_dt:Optional[DType]=None) -> MultiLazyBuffer:
     if self.axis is not None and self.axis in axis:
       # all-reduce on sharded axes
-      reduced_parts = [(x if r else x.const(0)).r(op, axis, acc_dt) for x,r in zip(self.lbs, self.real)]
+      reduced_parts = [(x if r else x.const(0)).r(op, axis) for x,r in zip(self.lbs, self.real)]
       # if lbs were upcasted, downcast back first before allreduce
       if self.lbs[0].base.op is UnaryOps.CAST and self.lbs[0].base.srcs[0].dtype.itemsize < self.dtype.itemsize:
         reduced_parts = [p.cast(self.lbs[0].base.srcs[0].dtype) for p in reduced_parts]
       if all(self.real): return MultiLazyBuffer(all_reduce(op, reduced_parts), None)
       return MultiLazyBuffer(reduced_parts, None, self.real)
     # reduce on non sharded axes, piecewise is fine. if axis is None this is also correct
-    return MultiLazyBuffer([x.r(op, axis, acc_dt) for x in self.lbs], self.axis, self.real)
+    return MultiLazyBuffer([x.r(op, axis) for x in self.lbs], self.axis, self.real)
 
   # *** movement ops ***
 
