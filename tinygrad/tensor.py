@@ -920,7 +920,9 @@ class Tensor:
     ret = fxn.apply(self, axis=axis_, acc_dtype=acc_dtype)
     return ret if keepdim else ret.reshape(shape)
 
-  def sum(self, axis=None, keepdim=False, acc_dtype:Optional[DType]=None): return self._reduce(F.Sum, axis, keepdim, acc_dtype)
+  def sum(self, axis=None, keepdim=False, acc_dtype:Optional[DType]=None):
+    ret = self.cast(acc_dtype or self.dtype)._reduce(F.Sum, axis, keepdim, acc_dtype)
+    return ret.cast(self.dtype) if self.dtype in {dtypes.float16, dtypes.bfloat16} else ret
   def max(self, axis=None, keepdim=False): return self._reduce(F.Max, axis, keepdim)
   def min(self, axis=None, keepdim=False): return -((-self).max(axis=axis, keepdim=keepdim))
 
