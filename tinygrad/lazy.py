@@ -170,17 +170,21 @@ class LazyBuffer:
 
   def r(self, op:ReduceOps, axis:Tuple[int, ...]) -> LazyBuffer:
     new_shape = tuple(1 if i in axis else s for i,s in enumerate(self.shape))
+    new_dtype = self.dtype
+    if op is ReduceOps.SUM and self.base.op is UnaryOps.CAST and self.base.srcs[0].dtype in [dtypes.float16, dtypes.bfloat16]:
+      new_dtype = self.base.srcs[0].dtype
+
     # TODO: this logic should move to the scheduler
-    if self.size == 0 and 0 not in new_shape: return self.const({ReduceOps.SUM: 0.0, ReduceOps.MAX: -math.inf}[op], new_shape)
+    if self.size == 0 and 0 not in new_shape: return self.const({ReduceOps.SUM: 0.0, ReduceOps.MAX: -math.inf}[op], new_shape).cast(new_dtype)
 
     # const folding
     if self.is_unrealized_unmasked_const():
-      return self.const(self.base.arg * {ReduceOps.SUM: prod(self.shape[i] for i in axis), ReduceOps.MAX: 1}[op], new_shape)
+      return self.const(self.base.arg * {ReduceOps.SUM: prod(self.shape[i] for i in axis), ReduceOps.MAX: 1}[op], new_shape).cast(new_dtype)
 
     # TODO: can we split symbolic shape if the reduce axis is not symbolic?
     if not getenv("SPLIT_REDUCEOP", 1) or not all_int(self.shape) or (0 in self.shape) or \
       prod(self.shape) // prod(new_shape) < getenv("REDUCEOP_SPLIT_THRESHOLD", 32768):
-      return self._reduce_op(op, axis)
+      return self._reduce_op(op, axis).cast(new_dtype)
 
     # if there are few globals, make some reduces into globals by splitting into two kernels
     # cap output buffer to 2**22: heuristic number of global outputs to achieve max occupancy with enough locals+upcasts for gemm
@@ -190,12 +194,13 @@ class LazyBuffer:
     self_real_strides = self.st.real_strides(ignore_valid=True)
     split_candidates = [(i, x) for i in axis for x in range(min(256,2**getenv("REDUCEOP_SPLIT_SIZE",22)//prod(new_shape)),8-1,-1)
                         if self.shape[i] % x == 0 and self_real_strides[i] != 0]
-    if not split_candidates: return self._reduce_op(op, axis)
+    if not split_candidates: return self._reduce_op(op, axis).cast(new_dtype)
     dim_to_split, divisor = split_candidates[0]
     splitted_shape = self.shape[:dim_to_split] + (divisor,) + (self.shape[dim_to_split]//divisor,) + self.shape[dim_to_split+1:]
     splitted = self.reshape(splitted_shape).permute(tuple([x for x in range(len(splitted_shape)) if x != dim_to_split]+[dim_to_split]))
     if DEBUG >= 3: print(f"split {divisor}: {self.shape} -> {splitted.shape} -> {new_shape}")
-    return splitted._reduce_op(op, axis)._reduce_op(op, (len(new_shape),)).reshape(new_shape)  # reduce original axes, then split
+    # reduce original axes, then split
+    return splitted._reduce_op(op, axis)._reduce_op(op, (len(new_shape),)).reshape(new_shape).cast(new_dtype)
 
   # *** movement ops ***
 

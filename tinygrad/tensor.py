@@ -929,7 +929,8 @@ class Tensor:
   def mean(self, axis=None, keepdim=False):
     output_dtype = self.dtype if dtypes.is_float(self.dtype) else dtypes.float32
     numerator = self.cast(sum_acc_dtype(self.dtype)).sum(axis=axis, keepdim=keepdim)
-    return numerator.div(prod([si for si, so in zip(self.shape, self.sum(axis=axis, keepdim=True).shape) if si != so])).cast(output_dtype)
+    denominator = Tensor(prod([si for si, so in zip(self.shape, self.sum(axis=axis, keepdim=True).shape) if si!=so]), dtype=sum_acc_dtype(self.dtype))
+    return numerator.div(denominator).cast(output_dtype)
   def var(self, axis=None, keepdim=False, correction=1):
     assert all_int(self.shape), "does not support symbolic shape"
     square_sum = ((self - self.mean(axis=axis, keepdim=True)).square()).sum(axis=axis, keepdim=keepdim)
