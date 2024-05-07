@@ -913,15 +913,15 @@ class Tensor:
 
   # ***** reduce ops *****
 
-  def _reduce(self, fxn:Type[Function], axis:Optional[Union[int, Tuple[int, ...]]]=None, keepdim=False, acc_dtype:Optional[DType]=None) -> Tensor:
+  def _reduce(self, fxn:Type[Function], axis:Optional[Union[int, Tuple[int, ...]]]=None, keepdim=False) -> Tensor:
     axis_: Tuple[int, ...] = tuple(range(len(self.shape))) if axis is None else ((axis,) if isinstance(axis, int) else tuple(axis))
     axis_ = tuple(x if x >= 0 else x+len(self.shape) for x in axis_)
     shape = tuple(s for i,s in enumerate(self.shape) if i not in axis_)
-    ret = fxn.apply(self, axis=axis_, acc_dtype=acc_dtype)
+    ret = fxn.apply(self, axis=axis_)
     return ret if keepdim else ret.reshape(shape)
 
   def sum(self, axis=None, keepdim=False, acc_dtype:Optional[DType]=None):
-    ret = self.cast(acc_dtype or self.dtype)._reduce(F.Sum, axis, keepdim, acc_dtype)
+    ret = self.cast(acc_dtype or self.dtype)._reduce(F.Sum, axis, keepdim)
     return ret.cast(self.dtype) if self.dtype in {dtypes.float16, dtypes.bfloat16} else ret
   def max(self, axis=None, keepdim=False): return self._reduce(F.Max, axis, keepdim)
   def min(self, axis=None, keepdim=False): return -((-self).max(axis=axis, keepdim=keepdim))
