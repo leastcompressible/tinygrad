@@ -172,7 +172,7 @@ class Expand(Function):
     return x.expand(shape)
 
   def backward(self, grad_output:LazyBuffer) -> LazyBuffer:
-    return grad_output.r(ReduceOps.SUM, self.expanded_axis).cast(grad_output.dtype)
+    return grad_output.cast(sum_acc_dtype(grad_output.dtype)).r(ReduceOps.SUM, self.expanded_axis).cast(grad_output.dtype)
 
 class Reshape(Function):
   def forward(self, x:LazyBuffer, shape:Tuple[int, ...]) -> LazyBuffer:

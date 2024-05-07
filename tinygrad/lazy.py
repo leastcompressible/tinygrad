@@ -201,7 +201,12 @@ class LazyBuffer:
     splitted_shape = self.shape[:dim_to_split] + (divisor,) + (self.shape[dim_to_split]//divisor,) + self.shape[dim_to_split+1:]
     splitted = self.reshape(splitted_shape).permute(tuple([x for x in range(len(splitted_shape)) if x != dim_to_split]+[dim_to_split]))
     if DEBUG >= 3: print(f"split {divisor}: {self.shape} -> {splitted.shape} -> {new_shape}")
-    return splitted._reduce_op(op, axis)._reduce_op(op, (len(new_shape),)).reshape(new_shape)  # reduce original axes, then split
+    top_split = splitted._reduce_op(op, axis)
+    if self.base.op is UnaryOps.CAST and self.base.srcs[0].dtype.itemsize < self.dtype.itemsize:
+      top_split = top_split.cast(self.base.srcs[0].dtype).contiguous().cast(self.dtype)
+    else:
+      top_split = top_split.contiguous()
+    return top_split._reduce_op(op, (len(new_shape),)).reshape(new_shape)  # reduce original axes, then split
 
   # *** movement ops ***
 
