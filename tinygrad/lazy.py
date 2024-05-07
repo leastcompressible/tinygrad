@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from typing import Union, Optional, Any, Tuple, List
-from tinygrad.dtype import dtypes, DType, ConstType, least_upper_dtype, sum_acc_dtype
+from tinygrad.dtype import dtypes, DType, ConstType, sum_acc_dtype
 from tinygrad.helpers import prod, getenv, all_int, all_same, DEBUG
 from tinygrad.ops import LoadOps, UnaryOps, BinaryOps, TernaryOps, ReduceOps, Op, exec_alu, python_alu
 from tinygrad.shape.symbolic import sint, Variable
@@ -175,10 +175,11 @@ class LazyBuffer:
 
     acc_dt = None
     # upcast acc_dt here so if reduce is splitted, the intermediate dtype is upcasted
-    if op is ReduceOps.SUM: acc_dt = sum_acc_dtype(self.dtype)
-    if acc_dt is not None and acc_dt != self.dtype:
-      # cast back to float16 or bfloat16 to match torch / jax behavior
-      return self.cast(acc_dt).r(op, axis).cast(self.dtype if self.dtype in [dtypes.float16, dtypes.bfloat16] else acc_dt)
+    if op is ReduceOps.SUM:
+      acc_dt = sum_acc_dtype(self.dtype)
+      if acc_dt != self.dtype:
+        # cast back to float16 or bfloat16 to match torch / jax behavior
+        return self.cast(acc_dt).r(op, axis).cast(self.dtype if self.dtype in [dtypes.float16, dtypes.bfloat16] else acc_dt)
 
     # const folding
     if self.is_unrealized_unmasked_const():
