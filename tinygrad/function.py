@@ -2,7 +2,7 @@
 import math
 from typing import Tuple, Optional
 from tinygrad.helpers import argsort
-from tinygrad.dtype import DType
+from tinygrad.dtype import dtypes, DType
 from tinygrad.ops import UnaryOps, BinaryOps, TernaryOps, ReduceOps
 from tinygrad.tensor import Function
 from tinygrad.lazy import LazyBuffer
@@ -159,9 +159,9 @@ class Max(Function):
 
   def backward(self, grad_output:LazyBuffer) -> LazyBuffer:
     # 1s in locations where the max was chosen (can be two locations)
-    max_is_1s = self.x.e(BinaryOps.CMPEQ, self.ret.expand(self.x.shape)).cast(self.x.dtype)
+    max_is_1s = self.x.e(BinaryOps.CMPEQ, self.ret.expand(self.x.shape)).cast(dtypes.float)
     div = max_is_1s.r(ReduceOps.SUM, self.axis).expand(self.x.shape)
-    return max_is_1s.e(BinaryOps.DIV, div).e(BinaryOps.MUL, grad_output.expand(self.x.shape))
+    return max_is_1s.e(BinaryOps.DIV, div).cast(grad_output.dtype).e(BinaryOps.MUL, grad_output.expand(self.x.shape))
 
 # ************* movement ops *************
 
