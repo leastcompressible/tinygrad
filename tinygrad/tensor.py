@@ -7,7 +7,7 @@ from collections import defaultdict
 import numpy as np
 
 from tinygrad.dtype import DType, dtypes, ImageDType, ConstType, least_upper_float, least_upper_dtype, sum_acc_dtype
-from tinygrad.helpers import argfix, make_pair, flatten, prod, all_int, round_up, merge_dicts, fully_flatten, argsort, getenv
+from tinygrad.helpers import argfix, make_pair, flatten, prod, all_int, all_same, round_up, merge_dicts, fully_flatten, argsort, getenv
 from tinygrad.helpers import IMAGE, DEBUG, WINO, THREEFRY
 from tinygrad.lazy import LazyBuffer
 from tinygrad.multi import MultiLazyBuffer
@@ -42,6 +42,12 @@ import tinygrad.function as F
 def _loadop(op, shape:Tuple[sint,...], dtype:DType, device:Union[str, Tuple[str, ...]], arg=None, src:Tuple[LazyBuffer, ...]=()):
   if isinstance(device, str): return LazyBuffer.loadop(op, shape, dtype, device, arg, src)
   return MultiLazyBuffer([LazyBuffer.loadop(op, shape, dtype, d, arg, src) for d in device], None)
+
+def _shape_dtype(s) -> Tuple[Tuple[int,...], DType]:
+  if not isinstance(s, (list, tuple)): return tuple(), dtypes.from_py(s)
+  subs = [_shape_dtype(si) for si in s]
+  assert all_same([len(sub) for sub in subs])
+  return (len(subs),) + subs[0][0], max(sub[1] for sub in subs)
 
 def _fromcpu(x: np.ndarray) -> LazyBuffer:
   ret = LazyBuffer.loadop(LoadOps.EMPTY, x.shape, dtypes.from_np(x.dtype), "NPY")
