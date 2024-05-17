@@ -24,8 +24,8 @@ class ShapeTracker:
     for v in st.views: ret = ShapeTracker(ret.views + (v,)).simplify() # one view at a time = better simplification
     return ret
 
-  def invert(self, out_shape:Tuple[sint, ...]) -> Optional[ShapeTracker]:
-    ret = tuple(v.invert(s) for v,s in zip(self.views[::-1], [x.shape for x in self.views[::-1][1:]]+[out_shape]))
+  def invert(self, out_shape:Tuple[sint, ...], unsafe=False) -> Optional[ShapeTracker]:
+    ret = tuple(v.invert(s, unsafe) for v,s in zip(self.views[::-1], [x.shape for x in self.views[::-1][1:]]+[out_shape]))
     return ShapeTracker(cast(Tuple[View, ...], ret)).reshape(out_shape) if all(x is not None for x in ret) else None
 
   @staticmethod

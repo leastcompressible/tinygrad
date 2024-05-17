@@ -192,11 +192,16 @@ class View:
     return View.create(vm1.shape, tuple(strides), sum(o * s for o, s in zip(origin, vm2.strides)) + vm2.offset)
 
   @functools.lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none
-  def invert(self, out_shape:Tuple[sint, ...]) -> Optional[View]:
+  def invert(self, out_shape:Tuple[sint, ...], unsafe=False) -> Optional[View]:
     ret = View.create(self.shape)
     if self.mask: ret = ret.shrink(self.mask)
     ret = ret.stride(tuple(-1 if x < 0 else 1 for x in self.strides)).permute(argsort(tuple(-x if x > 0 else x for x in self.strides)))
-    return ret if prod(ret.shape) == prod(out_shape) else None   # don't support shrink, expand, or stride != (-1, 1)
+    if prod(ret.shape) == prod(out_shape): return ret
+    if not unsafe: return None   # doesn't support shrink, expand, or stride != (-1, 1)
+    # support shrink
+    offsets = un1d(self.shape, self.offset)
+    ret = ret.pad(tuple((offset, s-r-offset) for offset,s,r in zip(offsets,out_shape,ret.shape)))
+    return ret if prod(ret.shape) == prod(out_shape) else None
 
   @functools.lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none
   def minify(self):
