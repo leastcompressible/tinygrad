@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterator, Optional, Tuple, Any, Dict, List, DefaultDict, Set, Callable
+from typing import Iterator, Optional, Tuple, Any, Dict, List, DefaultDict, Set, Callable, cast
 import functools, itertools, heapq
 from collections import defaultdict
 from enum import Enum, auto
@@ -284,6 +284,24 @@ class UOpGraph:
       run_cnt += 1
       assert run_cnt < 100, "exceeded 100 rewrite loops!"
     return sink
+
+  # TODO: move this to pattern matcher.
+  def fix_to_store_directly(self):
+    replaced_stores: Dict[UOp,UOp] = {}
+    for u in self.uops:
+      if u.uop is not UOps.STORE or (val:=u.vin[-1]).uop is not UOps.CAST or cast(DType,val.dtype).count == 1: continue
+
+      vins = val.vin
+      while all(el.uop is UOps.PHI for el in vins): vins = tuple([el.vin[0] for el in vins])
+      if all(el.uop is UOps.GEP for el in vins) and len(set(el.vin[0] for el in vins)) == 1 and val.dtype == vins[0].vin[0].dtype:
+        # Check that accesses are in order.
+        if all(i==el.arg for i,el in enumerate(vins)):
+          replaced_stores[u] = vins[0].vin[0]
+
+    for prev,new in replaced_stores.items():
+      try: self.uops.remove(prev.vin[-1])  # remove the old upcast NOTE: the upcast's vins become childless now
+      except ValueError: pass  # already removed
+      self.uops[self.uops.index(prev)].vin = (prev.vin[0],prev.vin[1],new) # replace with the float4 value
 
   def linearize(self, extra_pm:Optional[PatternMatcher]=None, type_verify=True):
     # NOTE: relinearizering should be okay
