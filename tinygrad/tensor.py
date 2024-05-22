@@ -1433,7 +1433,7 @@ class Tensor:
 
     # padding
     padding_ = [padding]*4 if isinstance(padding, int) else (padding if len(padding) == 4 else [padding[1], padding[1], padding[0], padding[0]])
-    x = x.slice((None, (-padding_[2], x.shape[1]+padding_[3]), (-padding_[0], x.shape[2]+padding_[1]), None, None, None))
+    x = x.pad((None, (padding_[2], padding_[3]), (padding_[0], padding_[1]), None, None, None))
 
     # prepare input
     x = x.permute(0,3,4,5,1,2)._pool((H, W), stride, dilation) # -> (bs, groups, rcin_hi, rcin_lo, oy, ox, H, W)
