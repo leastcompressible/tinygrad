@@ -356,7 +356,7 @@ def train_rnnt():
 @TinyJit
 def train_step_bert(model, optimizer, scheduler, loss_scaler:float, input_ids:Tensor, segment_ids:Tensor, attention_mask:Tensor, masked_positions:Tensor, masked_lm_ids:Tensor, masked_lm_weights:Tensor, next_sentence_labels:Tensor):
   lm_logits, clsf_logits = model(input_ids, segment_ids, attention_mask, masked_positions)
-  lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=masked_lm_weights)
+  lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=0)
   clsf_loss = clsf_logits.binary_crossentropy_logits(next_sentence_labels)
   loss = lm_loss + clsf_loss
 
@@ -380,7 +380,7 @@ def eval_step_bert(model, input_ids:Tensor, segment_ids:Tensor, attention_mask:T
   mask = (masked_lm_weights == 1.0)
   mlm_accuracy = (mlm_predictions == masked_lm_ids).where(mask, 0).sum() / mask.sum()
 
-  lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=masked_lm_weights)
+  lm_loss = lm_logits.sparse_categorical_crossentropy(masked_lm_ids, ignore_index=0)
   clsf_loss = clsf_logits.binary_crossentropy_logits(next_sentence_labels)
   return {
     "masked_lm_accuracy": mlm_accuracy.realize(), 
