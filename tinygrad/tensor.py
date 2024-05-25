@@ -1845,7 +1845,7 @@ class Tensor:
     print(Tensor([-3., -2., -1., 0., 1., 2., 3.]).relu().numpy())
     ```
     """
-    return F.Relu.apply(self)
+    return (0 < self) * self
   def sigmoid(self):
     """
     Applies the Sigmoid function element-wise.
