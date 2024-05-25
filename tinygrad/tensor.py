@@ -2414,7 +2414,10 @@ class Tensor:
       # simple pow identities
       if x < 0: return self.reciprocal().pow(-x)
       if x == 0: return 1 + self * 0
-      if x in [3,2,1]: return functools.reduce(lambda acc,_: acc * self, range(int(x)-1), self)
+      if x == 1: return self
+      if isinstance(x, int):
+        ret = self.pow(x//2).square()
+        return ret if x % 2 == 0 else ret * self
       if x == 0.5: return self.sqrt()
     if not isinstance(x, Tensor) and reverse and x > 0: return self.mul(math.log(x)).exp()
     ar = self.abs().log().mul(x).exp() if not reverse or isinstance(x, Tensor) else self.mul(math.log(abs(x))).exp()

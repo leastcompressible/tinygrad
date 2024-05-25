@@ -398,7 +398,9 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65)], lambda x: x**1)
     helper_test_op([(45,65)], lambda x: x**2)
     helper_test_op([(45,65)], lambda x: x**3)
+    helper_test_op([(45,65)], lambda x: x**4)
     helper_test_op([(45,65)], lambda x: x**-2)
+    helper_test_op([(45,65)], lambda x: x**-9)
     helper_test_op([()], lambda x: x**2)
     helper_test_op([()], lambda x: x**-2)
     # Regression tests for https://github.com/tinygrad/tinygrad/issues/1151
