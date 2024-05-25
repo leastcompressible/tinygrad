@@ -78,7 +78,7 @@ def train_resnet():
   lr_warmup_epochs  = config["lr_warmup_epochs"]  = getenv("WARMUP_EPOCHS", 2)
   decay             = config["decay"]             = getenv("DECAY", 2e-4)
 
-  loss_scaler       = config["LOSS_SCALER"]       = getenv("LOSS_SCALER", 2.0**15 if dtypes.default_float == dtypes.float16 else 1.0)
+  loss_scaler       = config["LOSS_SCALER"]       = getenv("LOSS_SCALER", 128.0 if dtypes.default_float == dtypes.float16 else 1.0)
 
   target, achieved  = getenv("TARGET", 0.759), False
   eval_start_epoch  = getenv("EVAL_START_EPOCH", 0)
@@ -364,7 +364,13 @@ def train_step_bert(model, optimizer, scheduler, loss_scaler:float, input_ids:Te
     optimizer.zero_grad()
     (loss * loss_scaler).backward()
 
-    for p in optimizer.params: p.grad /= loss_scaler
+    global_norm = Tensor.empty((len(optimizer.params),), dtype=dtypes.float32, device=optimizer[0].device).realize()
+    for i, p in enumerate(optimizer.params): 
+      p.grad = p.grad / loss_scaler
+      global_norm[i] = p.grad.float().square().sum()
+    global_norm = global_norm.sum().sqrt()
+    for i, p in enumerate(optimizer.params): p.grad = p.grad / Tensor.where(global_norm > 1.0, global_norm, 1.0)
+    # for p in optimizer.params: p.grad /= loss_scaler
     optimizer.step()
     scheduler.step()
   return loss.realize()
@@ -417,7 +423,7 @@ def train_bert():
   save_ckpt_dir      = config["SAVE_CKPT_DIR"]          = getenv("SAVE_CKPT_DIR", "./ckpts")
   init_ckpt          = config["INIT_CKPT_DIR"]          = getenv("INIT_CKPT_DIR", BASEDIR)
 
-  loss_scaler        = config["loss_scaler"]            = getenv("LOSS_SCALER", 2**9 if dtypes.default_float == dtypes.float16 else 1.0)
+  loss_scaler        = config["loss_scaler"]            = getenv("LOSS_SCALER", 2.0**9 if dtypes.default_float == dtypes.float16 else 1.0)
   decay              = config["decay"]                  = getenv("DECAY", 0.01)
   poly_power         = config["poly_power"]             = getenv("POLY_POWER", 1.0)
 

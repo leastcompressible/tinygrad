@@ -196,9 +196,9 @@ def get_bert_qa_prediction(features, example, start_end_logits):
 
 def get_mlperf_bert_config():
   return {
-    "attention_probs_dropout_prob": 0.1,
+    "attention_probs_dropout_prob": 0.0,
     "hidden_act": "gelu",
-    "hidden_dropout_prob": 0.1,
+    "hidden_dropout_prob": 0.0,
     "hidden_size": 1024,
     "initializer_range": 0.02,
     "intermediate_size": 4096,
