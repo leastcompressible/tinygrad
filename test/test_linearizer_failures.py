@@ -244,5 +244,30 @@ class TestLinearizerFailures(unittest.TestCase):
     opts = [Opt(op=OptOps.TC, axis=2, amt=2), Opt(op=OptOps.UPCAST, axis=2, amt=7), Opt(op=OptOps.UNROLL, axis=1, amt=0), Opt(op=OptOps.LOCAL, axis=1, amt=16)]
     helper_test_lin(Linearizer(ast), opts=opts, failed_platforms=[])
 
+  def test_failure_33(self):
+    # COMPARE_ERROR
+    ast = LazyOp(op=BufferOps.STORE, src=(LazyOp(op=BinaryOps.DIV, src=(LazyOp(op=BufferOps.CONST, src=(), arg=ConstBuffer(val=1.0, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=None, contiguous=False),)))), LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BufferOps.CONST, src=(), arg=ConstBuffer(val=1.0, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=None, contiguous=False),)))), LazyOp(op=UnaryOps.EXP2, src=(LazyOp(op=BinaryOps.MUL, src=(LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=1, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=((0, 0), (0, 0), (0, 0)), contiguous=False),)))), LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=2, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 4480, 1), offset=0, mask=((0, 1), (0, 80), (0, 4480)), contiguous=False),))))), arg=None), LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=3, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=((0, 0), (0, 0), (0, 0)), contiguous=False),)))), LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=4, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 1120, 1), offset=-4480, mask=((0, 1), (0, 80), (4480, 5600)), contiguous=False),))))), arg=None)), arg=None), LazyOp(op=BinaryOps.ADD, src=(LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=5, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=((0, 0), (0, 0), (0, 0)), contiguous=False),)))), LazyOp(op=BufferOps.LOAD, src=(), arg=MemBuffer(idx=6, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 280, 1), offset=-5600, mask=((0, 1), (0, 80), (5600, 5880)), contiguous=False),))))), arg=None)), arg=None), LazyOp(op=BufferOps.CONST, src=(), arg=ConstBuffer(val=-1.4426950408889634, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 0, 0), offset=0, mask=None, contiguous=False),))))), arg=None),), arg=None)), arg=None)), arg=None),), arg=MemBuffer(idx=0, dtype=dtypes.float, st=ShapeTracker(views=(View(shape=(1, 80, 5880), strides=(0, 5880, 1), offset=0, mask=None, contiguous=True),))))
+    all_failing_opts = [
+      [Opt(op=OptOps.UPCAST, axis=0, amt=2)],
+      [Opt(op=OptOps.UPCAST, axis=1, amt=2)],
+      [Opt(op=OptOps.UPCAST, axis=1, amt=3)],
+      [Opt(op=OptOps.UPCAST, axis=0, amt=4)],
+      [Opt(op=OptOps.UPCAST, axis=1, amt=4)],
+      [Opt(op=OptOps.UPCAST, axis=0, amt=5)],
+      [Opt(op=OptOps.UPCAST, axis=1, amt=5)],
+      [Opt(op=OptOps.LOCAL, axis=0, amt=2)],
+      [Opt(op=OptOps.LOCAL, axis=1, amt=2)],
+      [Opt(op=OptOps.LOCAL, axis=1, amt=3)],
+      [Opt(op=OptOps.LOCAL, axis=0, amt=4)],
+      [Opt(op=OptOps.LOCAL, axis=1, amt=4)],
+      [Opt(op=OptOps.LOCAL, axis=0, amt=8)],
+      [Opt(op=OptOps.LOCAL, axis=1, amt=8)],
+      [Opt(op=OptOps.LOCAL, axis=0, amt=16)],
+      [Opt(op=OptOps.PADTO, axis=0, amt=32)],
+      [Opt(op=OptOps.PADTO, axis=1, amt=32)],
+    ]
+    for opts in all_failing_opts:
+      helper_test_lin(Linearizer(ast), opts, failed_platforms=["METAL"])
+
 if __name__ == '__main__':
   unittest.main()

@@ -105,7 +105,9 @@ def compare_linearizer(lin: Linearizer, rawbufs=None, var_vals=None, ground_trut
     if DEBUG >= 2:
       print(f"COMPARE_ERROR details: {e}")
       if getenv("DEBUG_VALUES") > 0:
-        mismatch_indices = np.where(~np.isclose(result, ground_truth, rtol=rtol, atol=atol))
+        not_close = ~np.isclose(result, ground_truth, rtol=rtol, atol=atol)
+        not_both_nan = ~(np.isnan(result) & np.isnan(ground_truth))
+        mismatch_indices = np.where(not_close & not_both_nan)
         mismatched_result = result[mismatch_indices]
         mismatched_ground_truth = ground_truth[mismatch_indices]
         for i, idx in enumerate(mismatch_indices[0]):
