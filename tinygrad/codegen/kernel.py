@@ -260,23 +260,23 @@ class Kernel:
         shapes.append(self.output_shape)
         strides.append(special_strides)
 
-    # merge dimensions if we can, multi get_shape_strides
-    # NOTE: this does not always preserve the reduce dimension
-    # TODO: move this into shapetracker, with tests!
-    rets = [[(shapes[j][0], strides[j][0])] for j in range(len(shapes))]
-    for i in range(1, len(shapes[0])):
-      can_merge = []
-      for j in range(len(shapes)):
-        # TODO: added the always mergeability of 1s, is this right? if so, add to shapetracker in the 1 case
-        can_merge.append(strides[j][i] is not None and ((strides[j][i] != 0 and rets[j][-1][1] == shapes[j][i]*cast(int, strides[j][i])) or (strides[j][i] == 0 and rets[j][-1][1] == 0))) # noqa: E501
-      # more can merge than this
-      mergeable = all(can_merge) and i != self.first_reduce
-      for j in range(len(shapes)):
-        if mergeable: rets[j][-1] = (rets[j][-1][0] * shapes[j][i], strides[j][i])
-        else: rets[j].append((shapes[j][i], strides[j][i]))
+    # # merge dimensions if we can, multi get_shape_strides
+    # # NOTE: this does not always preserve the reduce dimension
+    # # TODO: move this into shapetracker, with tests!
+    # rets = [[(shapes[j][0], strides[j][0])] for j in range(len(shapes))]
+    # for i in range(1, len(shapes[0])):
+    #   can_merge = []
+    #   for j in range(len(shapes)):
+    #     # TODO: added the always mergeability of 1s, is this right? if so, add to shapetracker in the 1 case
+    #     can_merge.append(strides[j][i] is not None and ((strides[j][i] != 0 and rets[j][-1][1] == shapes[j][i]*cast(int, strides[j][i])) or (strides[j][i] == 0 and rets[j][-1][1] == 0))) # noqa: E501
+    #   # more can merge than this
+    #   mergeable = all(can_merge) and i != self.first_reduce
+    #   for j in range(len(shapes)):
+    #     if mergeable: rets[j][-1] = (rets[j][-1][0] * shapes[j][i], strides[j][i])
+    #     else: rets[j].append((shapes[j][i], strides[j][i]))
 
-    # do the reshapes
-    for i,x in enumerate(rets[:len(self.sts)]): self.sts[i] = self.sts[i].reshape(tuple([y[0] for y in x]))
+    # # do the reshapes
+    # for i,x in enumerate(rets[:len(self.sts)]): self.sts[i] = self.sts[i].reshape(tuple([y[0] for y in x]))
 
   # ******************** helpers ********************
 
