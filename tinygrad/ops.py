@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Union, Tuple, Any, List, Dict, Callable
-import functools, hashlib, math, operator, ctypes
+import functools, hashlib, math, operator, struct
 from enum import Enum, auto
 from dataclasses import dataclass
 from tinygrad.helpers import prod, dedup
@@ -127,12 +127,17 @@ python_alu = {
   BinaryOps.MOD: lambda x,y: abs(int(x))%abs(int(y))*(1,-1)[x<0], BinaryOps.IDIV: lambda x, y: int(x/y) if y != 0 else x*math.inf,
   TernaryOps.WHERE: lambda x,y,z: y if x else z}
 
-truncate: Dict[DType, Callable] = {dtypes.bool: bool,
-  # TODO: float16 and bfloat16?
-  dtypes.float32: lambda x: ctypes.c_float(x).value, dtypes.float64: lambda x: ctypes.c_double(x).value,
-  dtypes.uint8: lambda x: ctypes.c_uint8(x).value, dtypes.uint16: lambda x: ctypes.c_uint16(x).value,
-  dtypes.uint32: lambda x: ctypes.c_uint32(x).value, dtypes.uint64: lambda x: ctypes.c_uint64(x).value,
-  dtypes.int8: lambda x: ctypes.c_int8(x).value, dtypes.int16: lambda x: ctypes.c_int16(x).value,
-  dtypes.int32: lambda x: ctypes.c_int32(x).value, dtypes.int64: lambda x: ctypes.c_int64(x).value,}
+def python_cast(dtype:DType, values:List):
+  """cast python const values based on dtype"""
+  # handle overflow
+  if dtypes.is_int(dtype):
+    overflow_adjust = 2**(dtype.itemsize*8 - 1) if not dtypes.is_unsigned(dtype) else 0
+    values = [((x + overflow_adjust) % 2**(dtype.itemsize*8) - overflow_adjust) for x in values]
+  # TODO: handle float overflow
+  # make sure the output values are exactly representable in dtype
+  if dtype.fmt is not None:
+    fmt = f"@{len(values)}{dtype.fmt}"
+    values = list(struct.unpack(fmt, struct.pack(fmt, *values)))
+  return values
 
-def exec_alu(op:Op, dtype:DType, operands): return truncate.get(dtype, lambda x: x)(python_alu[op](*operands))
+def exec_alu(op:Op, dtype:DType, operands): return python_cast(dtype, [python_alu[op](*operands)])[0]
