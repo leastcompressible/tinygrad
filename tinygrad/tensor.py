@@ -1787,11 +1787,11 @@ class Tensor:
     # for now this is a two stage cumsum
     SPLIT = 256
     if self.shape[axis] <= SPLIT*2: return self._cumsum(axis)
-    ret = self.transpose(axis,-1).pad2d((round_up(self.shape[axis], SPLIT)-self.shape[axis], 0))
+    ret = self.transpose(axis,-1).pad2d((0, round_up(self.shape[axis], SPLIT)-self.shape[axis]))
     ret = ret.unflatten(-1, (-1, SPLIT))._cumsum(-1)
     base_add = ret[..., -1]._cumsum(-1, _first_zero=True)
     base_add = base_add.unsqueeze(-1).expand(*base_add.shape, ret.shape[-1])
-    def fix(x:Tensor): return x.flatten(start_dim=-2)[..., -self.shape[axis]:].transpose(axis,-1)
+    def fix(x:Tensor): return x.flatten(start_dim=-2)[..., :cast(int, self.shape[axis])].transpose(axis,-1)
     return fix(ret) + fix(base_add)
 
   @staticmethod
