@@ -225,11 +225,11 @@ class PTXRenderer(Renderer):
     return self.render_kernel(kernel, name, bufs, c.items())
 
 ptx_matcher = PatternMatcher([
-  (UPat(UOps.ALU, BinaryOps.MUL, name="root", dtype=set([dt for dt in dtypes.fields().values() if dtypes.is_int(dt)]),
-      src=[UPat(UOps.CONST, set([2**i for i in range(64)]), name="const"), UPat(name="mul")]),
+  (UPat(UOps.ALU, BinaryOps.MUL, name="root", dtype=tuple([dt for dt in dtypes.fields().values() if dtypes.is_int(dt)]),
+      src=[UPat(UOps.CONST, tuple([2**i for i in range(64)]), name="const"), UPat(name="mul")]),
     lambda root, mul, const: UOp(UOps.ALU, root.dtype, (mul, UOp.const(root.dtype, int(math.log2(const.arg)))), BinaryOps.SHL)),
-  (UPat(UOps.ALU, BinaryOps.IDIV, name="root", dtype=set([dt for dt in dtypes.fields().values() if dtypes.is_int(dt)]),
-      src=[UPat(UOps.CONST, set([2**i for i in range(64)]), name="const"), UPat(name="div")]),
+  (UPat(UOps.ALU, BinaryOps.IDIV, name="root", dtype=tuple([dt for dt in dtypes.fields().values() if dtypes.is_int(dt)]),
+      src=[UPat(UOps.CONST, tuple([2**i for i in range(64)]), name="const"), UPat(name="div")]),
     lambda root, div, const: UOp(UOps.ALU, root.dtype, (div, UOp.const(root.dtype, int(math.log2(const.arg)))), BinaryOps.SHR)),
   (UPat(UOps.ALU, BinaryOps.CMPNE, (UPat(dtype=dtypes.bool),UPat()), "root"), lambda root: UOp(root.op, root.dtype, root.src, BinaryOps.XOR)),
   (UPat(UOps.ALU, BinaryOps.CMPLT, (UPat(name="x", dtype=dtypes.bool),UPat(name="y")), "root"),
@@ -251,17 +251,17 @@ ptx_matcher = PatternMatcher([
   (UPat(UOps.STORE, name="root", src=(UPat(),UPat(),UPat(),UPat(name="g", dtype=dtypes.int))),
     lambda root,g: UOp(root.op, root.dtype, root.src[:3] + (UOp(UOps.CAST, dtypes.bool, (g,)),), root.arg)),
   # ptr_ar (load/store)
-  (UPat({UOps.LOAD, UOps.STORE}, name="root", allow_len={2,3,4,5}, src=(UPat({UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL}),
+  (UPat((UOps.LOAD, UOps.STORE), name="root", allow_len=(2,3,4,5), src=(UPat((UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL)),
                                UPat(UOps.ALU, BinaryOps.ADD, src=[UPat(name="alu"), UPat(UOps.CONST, name="const")]))),
     lambda root, alu, const: UOp(root.op, root.dtype,
       (alu.cast(dtypes.int64)*UOp.const(dtypes.int64, root.src[0].dtype.itemsize)+root.src[0].cast(dtypes.int64),
        UOp.const(const.dtype, root.src[0].dtype.itemsize)*const)+root.src[2:])),
-  (UPat({UOps.LOAD, UOps.STORE}, name="root", allow_len={2,3,4,5}, src=(UPat({UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL}),
+  (UPat((UOps.LOAD, UOps.STORE), name="root", allow_len=(2,3,4,5), src=(UPat((UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL)),
                                                                               UPat(UOps.CONST, name="const"))),
     lambda root, const: UOp(root.op, root.dtype, (root.src[0].cast(dtypes.int64),
                                 UOp.const(dtypes.int64, const.arg * root.src[0].dtype.itemsize),
                                                   )+root.src[2:])),
-  (UPat({UOps.LOAD, UOps.STORE}, name="root", allow_len={2,3,4,5}, src=(UPat({UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL}),
+  (UPat((UOps.LOAD, UOps.STORE), name="root", allow_len=(2,3,4,5), src=(UPat((UOps.DEFINE_LOCAL,UOps.DEFINE_GLOBAL)),
                                                                               UPat(name="alu"))),  # no const here
     lambda root, alu: UOp(root.op, root.dtype,
       (alu.cast(dtypes.int64)*UOp.const(dtypes.int64, root.src[0].dtype.itemsize)+root.src[0].cast(dtypes.int64),

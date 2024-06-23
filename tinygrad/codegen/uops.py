@@ -91,12 +91,12 @@ def uop_alu_resolve(u:UOp) -> sint:
 
 @dataclass(frozen=True)
 class UPat:
-  op: Optional[Union[UOps, Set[UOps]]] = None
+  op: Optional[Union[UOps, Tuple[UOps, ...]]] = None
   arg: Any = None
   src: Optional[Union[Tuple[UPat, ...], List[UPat], UPat]] = None
   name: Optional[str] = None
-  dtype: Optional[Union[DType, Set[DType]]] = None
-  allow_len: Set[int] = field(default_factory=set)
+  dtype: Optional[Union[DType, Tuple[DType, ...]]] = None
+  allow_len: Tuple[int, ...] = field(default_factory=tuple)
 
   @staticmethod
   def compile(u: UOp, name:Optional[str]=None) -> UPat:
@@ -104,8 +104,8 @@ class UPat:
     return UPat(u.op, u.arg, (list if u.commutative() else tuple)([UPat.compile(src) for src in u.src]) if u.src != () else None, name, u.dtype)
 
 T = TypeVar("T")
-def __unmatch(m1:Union[T, Set[T]], m2:T) -> bool:
-  if isinstance(m1, set):
+def __unmatch(m1:Union[T, Tuple[T, ...]], m2:T) -> bool:
+  if isinstance(m1, tuple):
     if m2 not in m1: return True
   elif m2 != m1: return True
   return False
@@ -136,7 +136,7 @@ class PatternMatcher:
     for p,fxn in self.patterns:
       if isinstance(p, UOp): p = UPat.compile(p)
       assert p.op is not None
-      if isinstance(p.op, set):
+      if isinstance(p.op, tuple):
         for uop in p.op: self.pdict[(uop, p.arg)].append((p, fxn))
       else:
         self.pdict[(p.op, p.arg)].append((p, fxn))
