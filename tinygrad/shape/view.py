@@ -151,49 +151,50 @@ class View:
         terms[d2].append((d1, s1))
         strides[d1] += s1 * vm2.strides[d2]
 
-    # Merge dimensions in vm2 if required.
-    # NB: Merging too many dimensions can make it difficult to project vm2's mask, hence only combining when required.
-    idxs: List[Node] = [Variable(f"idx{i}", 0, s-1) for i,s in enumerate(vm1.shape)]
-    merged_size, merged_term = 1, NumNode(0)
-    extents: List[Tuple[sint, Node]] = []
-    for term, s, o in zip(reversed(terms), reversed(vm2.shape), reversed(origin)):
-      merged_term += Variable.sum([idxs[d1] * (s1 * merged_size) for d1, s1 in term]) + o * merged_size
-      merged_size *= s
-      if not (merged_term >= merged_size) and not (merged_term < 0):
-        extents.append((merged_size, merged_term))
-        merged_size, merged_term = 1, NumNode(0)
-    if merged_term: return None
-    if (vm2_shape := tuple(s for s,_ in reversed(extents))) != vm2.shape:
-      return (reshaped_vm2 := vm2.reshape(vm2_shape)) and reshaped_vm2 + vm1
+    # # Merge dimensions in vm2 if required.
+    # # NB: Merging too many dimensions can make it difficult to project vm2's mask, hence only combining when required.
+    # idxs: List[Node] = [Variable(f"idx{i}", 0, s-1) for i,s in enumerate(vm1.shape)]
+    # merged_size, merged_term = 1, NumNode(0)
+    # extents: List[Tuple[sint, Node]] = []
+    # for term, s, o in zip(reversed(terms), reversed(vm2.shape), reversed(origin)):
+    #   merged_term += Variable.sum([idxs[d1] * (s1 * merged_size) for d1, s1 in term]) + o * merged_size
+    #   merged_size *= s
+    #   if not (merged_term >= merged_size) and not (merged_term < 0):
+    #     extents.append((merged_size, merged_term))
+    #     merged_size, merged_term = 1, NumNode(0)
+    # if merged_term: return None
+    # if (vm2_shape := tuple(s for s,_ in reversed(extents))) != vm2.shape:
+    #   return (reshaped_vm2 := vm2.reshape(vm2_shape)) and reshaped_vm2 + vm1
 
-    if vm2.mask:
-      # Try to project vm2's mask on to vm1.
-      newb, newe, bad = [0] * len(vm1.shape), list(vm1.shape), False
-      for d2, ((b, e), o, (_, t)) in enumerate(zip(vm2.mask, origin, reversed(extents))):
-        if not (t.min < b or t.max >= e): continue
-        if not isinstance(o, int) or not isinstance(b, int) or not isinstance(e, int):
-          bad = True
-          continue
-        term = terms[d2]
-        if len(term) != 1:
-          if not term and newe: newe[0] = 0
-          else: bad = True
-          continue
-        d1, s1 = term[0]
-        if not isinstance(s1, int) or not isinstance(newe[d1], int):
-          bad = True
-          continue
-        newb[d1] = max(newb[d1], math.ceil((b - o if s1 > 0 else e - o - 1) / s1))
-        newe[d1] = min(newe[d1], (b - o if s1 < 0 else e - o - 1) // s1 + 1)
+    # if vm2.mask:
+    #   # Try to project vm2's mask on to vm1.
+    #   newb, newe, bad = [0] * len(vm1.shape), list(vm1.shape), False
+    #   for d2, ((b, e), o, (_, t)) in enumerate(zip(vm2.mask, origin, reversed(extents))):
+    #     if not (t.min < b or t.max >= e): continue
+    #     if not isinstance(o, int) or not isinstance(b, int) or not isinstance(e, int):
+    #       bad = True
+    #       continue
+    #     term = terms[d2]
+    #     if len(term) != 1:
+    #       if not term and newe: newe[0] = 0
+    #       else: bad = True
+    #       continue
+    #     d1, s1 = term[0]
+    #     if not isinstance(s1, int) or not isinstance(newe[d1], int):
+    #       bad = True
+    #       continue
+    #     newb[d1] = max(newb[d1], math.ceil((b - o if s1 > 0 else e - o - 1) / s1))
+    #     newe[d1] = min(newe[d1], (b - o if s1 < 0 else e - o - 1) // s1 + 1)
 
-      # If any of vm1 was masked off, try again with that mask in place.
-      for b, e, s in zip(newb, newe, vm1.shape):
-        if b != 0 or e != s:
-          return vm2 + View.create(vm1.shape, vm1.strides, vm1.offset, tuple(zip(newb, newe)))
-      # Otherwise if vm2's mask was violated, then cannot merge.
-      if bad: return None
+    #   # If any of vm1 was masked off, try again with that mask in place.
+    #   for b, e, s in zip(newb, newe, vm1.shape):
+    #     if b != 0 or e != s:
+    #       return vm2 + View.create(vm1.shape, vm1.strides, vm1.offset, tuple(zip(newb, newe)))
+    #   # Otherwise if vm2's mask was violated, then cannot merge.
+    #   if bad: return None
 
-    return View.create(vm1.shape, tuple(strides), sum(o * s for o, s in zip(origin, vm2.strides)) + vm2.offset)
+    # return View.create(vm1.shape, tuple(strides), sum(o * s for o, s in zip(origin, vm2.strides)) + vm2.offset)
+    return None
 
   @functools.lru_cache(maxsize=None)  # pylint: disable=method-cache-max-size-none
   def invert(self, out_shape:Tuple[sint, ...]) -> Optional[View]:
