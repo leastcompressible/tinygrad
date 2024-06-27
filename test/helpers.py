@@ -25,7 +25,7 @@ def assert_jit_cache_len(fxn, expected_len):
     assert len(fxn.jit_cache) == 1, len(fxn.jit_cache)
     # until we have a better way of typing the prg in ExecItem
     assert type(fxn.jit_cache[0].prg).__name__.endswith('Graph')
-    assert len(fxn.jit_cache[0].prg.jit_cache) == expected_len
+    assert len(fxn.jit_cache[0].prg.jit_cache) == expected_len, len(fxn.jit_cache[0].prg.jit_cache)
 
 def is_dtype_supported(dtype: DType, device: str = Device.DEFAULT):
   if dtype == dtypes.bfloat16:

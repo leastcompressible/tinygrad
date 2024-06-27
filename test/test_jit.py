@@ -356,6 +356,77 @@ class TestJit(unittest.TestCase):
       xc = jf(a)
       np.testing.assert_allclose((a.numpy().sum(axis=(1,)) + 5).view(np.int32), xc.numpy(), atol=1e-4, rtol=1e-5)
 
+class TestJitInsideJit(unittest.TestCase):
+  def test_two_levels_simple(self):
+    @TinyJit
+    def f(t): return t + 1
+
+    @TinyJit
+    def g(t): return f(t) * 3
+
+    output = [g(Tensor([i])).item() for i in range(5)]
+    self.assertEqual(output, [3, 6, 9, 12, 15])
+    assert_jit_cache_len(f, 0)
+    assert_jit_cache_len(g, 2)
+
+  def test_two_levels_faster_inner(self):
+    @TinyJit
+    def f(t): return t + 1
+
+    @TinyJit
+    def g(t):
+      for _ in range(3): t = f(t)
+      return t * 3
+
+    output = [g(Tensor([i])).item() for i in range(5)]
+    self.assertEqual(output, [9, 12, 15, 18, 21])
+    assert_jit_cache_len(f, 0)
+    assert_jit_cache_len(g, 4)
+
+  def test_three_levels_simple(self):
+    @TinyJit
+    def f(t): return t + 1
+
+    @TinyJit
+    def g(t): return f(t) * 3
+
+    @TinyJit
+    def h(t): return g(t) - 2
+
+    output = [h(Tensor([i])).item() for i in range(5)]
+    self.assertEqual(output, [1, 4, 7, 10, 13])
+    assert_jit_cache_len(f, 0)
+    assert_jit_cache_len(g, 0)
+    assert_jit_cache_len(h, 3)
+
+  def test_three_levels_jit_nojit_jit(self):
+    @TinyJit
+    def f(t): return t + 1
+
+    def g(t): return f(t) * 3
+
+    @TinyJit
+    def h(t): return g(t) - 2
+
+    output = [h(Tensor([i])).item() for i in range(5)]
+    self.assertEqual(output, [1, 4, 7, 10, 13])
+    assert_jit_cache_len(f, 0)
+    assert_jit_cache_len(h, 2)
+
+  def test_three_levels_nojit_jit_jit(self):
+    @TinyJit
+    def f(t): return t + 1
+
+    @TinyJit
+    def g(t): return f(t) * 3
+
+    def h(t): return g(t) - 2
+
+    output = [h(Tensor([i])).item() for i in range(5)]
+    self.assertEqual(output, [1, 4, 7, 10, 13])
+    assert_jit_cache_len(f, 0)
+    assert_jit_cache_len(g, 2)
+
 @unittest.skip("Pending multioutput implementation #3607")
 class TestMultioutputJit(unittest.TestCase):
   def _test(self, f):
