@@ -36,10 +36,20 @@ SMALL=1 python3 examples/whisper.py
 ### Stable Diffusion
 
 ```sh
-python3 examples/stable_diffusion.py
+python3 examples/stable_diffusion.py --seed 0
 ```
 
-![a horse sized cat eating a bagel](https://github.com/tinygrad/tinygrad/blob/master/docs/showcase/stable_diffusion_by_tinygrad.jpg?raw=true)
+![a horse sized cat eating a bagel](https://github.com/tinygrad/tinygrad/blob/master/examples/stable_diffusion_seed0.png?raw=true)
+
+*"a horse sized cat eating a bagel"*
+
+### Stable Diffusion XL
+
+```sh
+python3 examples/sdxl.py --seed 0
+```
+
+![a horse sized cat eating a bagel](https://github.com/tinygrad/tinygrad/blob/master/examples/sdxl_seed0.png?raw=true)
 
 *"a horse sized cat eating a bagel"*
 
