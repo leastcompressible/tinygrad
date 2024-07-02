@@ -45,8 +45,8 @@ class Tokenizer:
         n += 1
     cs = [chr(n) for n in cs]
     return dict(zip(bs, cs))
-  @lru_cache()
   @staticmethod
+  @lru_cache()
   def default_bpe():
     # Clip tokenizer, taken from https://github.com/openai/CLIP/blob/main/clip/simple_tokenizer.py (MIT license)
     return fetch("https://github.com/openai/CLIP/raw/main/clip/bpe_simple_vocab_16e6.txt.gz", "bpe_simple_vocab_16e6.txt.gz")
