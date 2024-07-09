@@ -134,11 +134,11 @@ class GPT2:
     # lm head and wte are tied
     weights['lm_head.weight'] = weights['wte.weight']
 
-    load_state_dict(model, weights)
-
     if HALF:
       for l in get_state_dict(model).values():
-        l.replace(l.half().realize())
+        l.replace(l.half())
+
+    load_state_dict(model, weights)
 
     return GPT2(model, tokenizer)
 
