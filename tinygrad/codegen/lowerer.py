@@ -117,7 +117,7 @@ class Lowerer(Kernel):
 
     if self.opts.has_local:
       # define indexes
-      global_idxs, loop_global_idxs = get_grouped_dims("gidx", 0, ki.full_shape[:ki.global_dims], 3)
+      global_idxs, loop_global_idxs = get_grouped_dims("gidx", 0, ki.full_shape[:ki.global_dims][::-1], 3)
       local_idxs, loop_local_idxs = get_grouped_dims("lidx", ki.global_dims, ki.full_shape[ki.global_dims:ki.first_reduce+ki.group_for_reduces], 3)
       self.idxs = global_idxs + local_idxs
 
