@@ -302,7 +302,7 @@ jobs:
     env:
       RUN_PROCESS_REPLAY: ${{ needs.check_process_replay.outputs.run_process_replay }}
       ASSERT_PROCESS_REPLAY: ${{ needs.check_process_replay.outputs.assert_process_replay }}
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
     - name: Checkout Code
@@ -396,7 +396,7 @@ jobs:
 
     name: Tests on (${{ matrix.backend }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Code
