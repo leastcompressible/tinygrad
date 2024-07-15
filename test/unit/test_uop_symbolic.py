@@ -306,7 +306,6 @@ class TestSymbolic(unittest.TestCase):
   def test_div_factor(self):
     self.helper_test_variable(Node.sum([NumNode(-40), Variable("a", 0, 10)*2, Variable("b", 0, 10)*40]) // 40, -1, 9, "(-1+b)")
 
-  # TODO: this one should already work!
   def test_mul_div(self):
     self.helper_test_variable((Variable("a", 0, 10)*4)//4, 0, 10, "a")
 
@@ -329,6 +328,9 @@ class TestSymbolic(unittest.TestCase):
   @unittest.expectedFailure
   def test_div_into_mod(self):
     self.helper_test_variable((Variable("idx", 0, 16)*4)%8//4, 0, 1, "(idx%2)")
+
+  def test_mod_div(self):
+    self.helper_test_variable((Variable("idx", 0, 16)%7)//7, 0, 0, "0")
 
 @unittest.skip("not supported on uops yet")
 class TestSymbolicNumeric(unittest.TestCase):

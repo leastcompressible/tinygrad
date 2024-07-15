@@ -192,6 +192,9 @@ class TestSymbolic(unittest.TestCase):
   def test_mod_remove(self):
     self.helper_test_variable(Variable("a", 0, 6)%100, 0, 6, "a")
 
+  def test_mod_div(self):
+    self.helper_test_variable((Variable("idx", 0, 16)%7)//7, 0, 0, "0")
+
   def test_big_mod(self):
     # NOTE: we no longer support negative variables
     #self.helper_test_variable(Variable("a", -20, 20)%10, -9, 9, "(a%10)")
