@@ -655,13 +655,30 @@ class Kernel:
     return name+colored(suffix, 'BLACK')
 
   def get_optimized_ast(self) -> LazyOp:
+
+    # if (local_max := self.opts.local_max) is not None and (l := self.local_dims + self.group_for_reduces) > (lm := len(local_max)):
+    #   self.local_dims = lm
+
+    def fixup_dims(st:ShapeTracker):
+      # fix global and local dim if it has more dims then max allowed
+      if self.opts.has_local:
+        if (global_max := self.opts.global_max) is not None and (g := self.global_dims) > (gm := len(global_max)):
+          st = st.reshape((prod(st.shape[:g-gm+1]),) + st.shape[g-gm+1:])
+          g = gm
+        # if (local_max := self.opts.local_max) is not None and (l := self.local_dims + self.group_for_reduces) > (lm := len(local_max)):
+        #   st = st.reshape(st.shape[:g] + (prod(st.shape[g:g+l-lm+1]),) + st.shape[g+l-lm+1:])
+      return st
+
     # set the shapetrackers to the optimized ones, fixup reduceop
     # transformed to the final LazyOp
     @functools.lru_cache(None)
     def fixup_ast(op:LazyOp, apply_to_st=None) -> LazyOp:
       if op.op in BufferOps:
         idx = self.bufs.index(op.arg)
-        arg = replace(op.arg, st=self.sts[idx] if apply_to_st is None else apply_to_st(self.sts[idx]))
+        st = self.sts[idx] if apply_to_st is None else apply_to_st(self.sts[idx])
+        # print(f"before {st.shape=}")
+        # print(f"before {fixup_dims(st).shape=}")
+        arg = replace(op.arg, st=fixup_dims(st))
       elif op.op in ReduceOps:
         reduce_idx = len(self.bufs) + self.reduceops.index(op)*2
         arg = tuple(i for i in range(self.first_reduce+self.group_for_reduces, self.shape_len)
