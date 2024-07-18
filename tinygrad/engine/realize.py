@@ -157,7 +157,12 @@ def get_runner(dname:str, ast:LazyOp) -> CompiledRunner:
   if bret:=method_cache.get(bkey):
     method_cache[ckey] = ret = CompiledRunner(replace(bret.p, dname=dname), bret.lib)
   else:
-    prg: Program = get_kernel(Device[dname].renderer, ast).to_program()
+    k = get_kernel(Device[dname].renderer, ast)
+    prg: Program = k.to_program()
+    if k.reduceop is not None and k.full_shape[k.first_reduce] >= 256:
+      print("big reduce")
+      print(prg.src)
+      print()
     if hasattr(prg.uops, "_fuzz_paths"):
       from test.external.fuzz_uops import UOpsFuzzerRunner
       return UOpsFuzzerRunner(replace(prg, dname=dname))
