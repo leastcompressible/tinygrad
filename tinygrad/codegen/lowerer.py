@@ -56,8 +56,8 @@ else:
 def get_grouped_dims(prefix, dims, max_sizes:Optional[Tuple[int, ...]]) -> List[UOp]:
   # TODO: this should be per dim max
   maxdim = len(max_sizes) if max_sizes is not None else 0
-  local_idxs = [UOp(UOps.SPECIAL, dtypes.bigint, (),
-    (i, f"{prefix}{i}", s)) for i,s in enumerate((prod(dims[:-(maxdim-1)]),) + dims[-(maxdim-1):] if len(dims) > maxdim else dims)]
+  local_idxs = [UOp(UOps.SPECIAL, dtypes.bigint, (), (i, f"{prefix}{maxdim-i if max_sizes else i}", s)) \
+                for i,s in enumerate((prod(dims[:-(maxdim-1)]),) + dims[-(maxdim-1):] if len(dims) > maxdim else dims)]
   if maxdim != 0 and len(dims) > maxdim:
     dd = local_idxs[0]
     nli = []
