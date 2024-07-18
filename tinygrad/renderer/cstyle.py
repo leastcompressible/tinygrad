@@ -226,7 +226,7 @@ class MetalRenderer(CStyleLanguage):
   barrier = "threadgroup_barrier(mem_flags::mem_threadgroup);"
   float4 = "float4"
   uses_ptr_arithmetic = True
-  code_for_workitem = {"g": lambda x: f"gid.{chr(120+x)}", "l": lambda x: f"lid.{chr(120+x)}"}
+  code_for_workitem = {"g": lambda x: f"gid.{chr(122-x)}", "l": lambda x: f"lid.{chr(122-x)}"}
   # uint3 used for gid/lid - TODO: this should probably be `ushort3 lid [[thread_position_in_threadgroup]]`
   extra_args = ['uint3 gid [[threadgroup_position_in_grid]]', 'uint3 lid [[thread_position_in_threadgroup]]']
   type_map = {dtypes.bfloat16: "bfloat"}
@@ -274,8 +274,8 @@ class CUDARenderer(CStyleLanguage):
   smem_prefix_for_cast = False
   barrier = "__syncthreads();"
   float4 = "make_float4"
-  code_for_workitem = {"g": lambda x: f"blockIdx.{chr(120+x)}", "l": lambda x: f"threadIdx.{chr(120+x)}",
-                       "i": lambda x: f"(blockIdx.{chr(120+x)}*blockDim.{chr(120+x)}+threadIdx.{chr(120+x)})"}
+  code_for_workitem = {"g": lambda x: f"blockIdx.{chr(122-x)}", "l": lambda x: f"threadIdx.{chr(122-x)}",
+                       "i": lambda x: f"(blockIdx.{chr(122-x)}*blockDim.{chr(120+x)}+threadIdx.{chr(122-x)})"}
   code_for_op = {**CStyleLanguage().code_for_op, **code_for_op_half}
   type_map = {dtypes.bfloat16: "nv_bfloat16"}
 
@@ -338,8 +338,8 @@ f"""  __attribute__((device)) __attribute__((const)) {dt} __ocml_fmax_f{n}({dt},
   __attribute__((device)) __attribute__((const)) {dt} __ocml_sqrt_f{n}({dt});
   __attribute__((device)) {dt} __ocml_sin_f{n}({dt});\n""" for dt,n in [("float",32), ("double",64), ("_Float16",16)]]) +\
 '}\nextern "C" __attribute__((global))'
-  code_for_workitem = {"g": lambda x: f"__ockl_get_group_id({x})", "l": lambda x: f"__ockl_get_local_id({x})",
-                       "i": lambda x: f"(__ockl_get_group_id({x})*__ockl_get_local_size({x})+__ockl_get_local_id({x}))"}
+  code_for_workitem = {"g": lambda x: f"__ockl_get_group_id({2-x})", "l": lambda x: f"__ockl_get_local_id({2-x})",
+                       "i": lambda x: f"(__ockl_get_group_id({2-x})*__ockl_get_local_size({x})+__ockl_get_local_id({2-x}))"}
   code_for_op = _make_hip_code_for_op()
   smem_prefix = "__attribute__((shared))"
   barrier = '__builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup");' + '__builtin_amdgcn_s_barrier();' + \
