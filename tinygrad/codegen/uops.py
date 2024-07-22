@@ -196,7 +196,8 @@ def type_verify(uops):
 
 def uop_alu_resolve(u:UOp) -> sint:
   if u.op is UOps.SPECIAL: return u.arg[2]-1
-  if u.op in {UOps.CONST, UOps.DEFINE_VAR}: return u.arg
+  if u.op is UOps.CONST: return u.arg
+  if u.op is UOps.DEFINE_VAR: return Variable(*u.arg)
   if u.op is UOps.ALU: return exec_alu(u.arg, cast(DType,u.dtype), tuple(map(uop_alu_resolve, u.src)))
   raise RuntimeError(f"ALU resolve fail @ {u.op}")
 
