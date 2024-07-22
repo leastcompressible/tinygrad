@@ -88,7 +88,7 @@ class TestUOpGraph(TestUOps):
     self.assertEqual(out.arg, 3.0)
 
   def test_where_same_fold(self):
-    v = UOp(UOps.DEFINE_VAR, dtypes.int, arg=Variable('tmp', 0, 1))
+    v = UOp(UOps.DEFINE_VAR, dtypes.int, arg=('tmp', 0, 1))
     c0 = UOp(UOps.CONST, dtypes.int, arg=0)
     vc = UOp(UOps.ALU, dtypes.bool, (v, c0), BinaryOps.CMPNE)
     c1 = UOp(UOps.CONST, dtypes.float, arg=1.0)
@@ -192,7 +192,7 @@ class TestUOpGraph(TestUOps):
     self.assertEqual(len([x for x in g.uops if x.op is UOps.CAST]), 1)
 
   def test_depth_2_const_fold(self):
-    v = UOp(UOps.DEFINE_VAR, dtypes.int, arg=Variable('tmp', 0, 1))
+    v = UOp(UOps.DEFINE_VAR, dtypes.int, arg=('tmp', 0, 1))
     c2 = UOp(UOps.CONST, dtypes.int, arg=2)
     c4 = UOp(UOps.CONST, dtypes.int, arg=4)
     vc = UOp(UOps.ALU, dtypes.int, (v, c2), BinaryOps.ADD)

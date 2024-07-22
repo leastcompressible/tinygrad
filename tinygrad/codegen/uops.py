@@ -39,9 +39,7 @@ class UOp:
       self.arg in {BinaryOps.ADD, BinaryOps.MUL, BinaryOps.MAX, BinaryOps.CMPNE, BinaryOps.XOR, BinaryOps.AND, BinaryOps.OR})
   @functools.cached_property
   def cmp_tuple(self):
-    # NOTE: this sort of DEFINE_VAR shouldn't have to be here. only for PTX
-    return (self.op.value, (self.arg if self.op is not UOps.DEFINE_VAR else self.arg.expr) if self.op is not UOps.ALU else \
-            self.arg.value, self.dtype, self.src)
+    return (self.op.value, self.arg if self.op is not UOps.ALU else self.arg.value, self.dtype, self.src)
   def __lt__(self, x:UOp): return self.cmp_tuple < x.cmp_tuple
   def __repr__(self): return pretty_print(self, lambda x: f"UOp({x.op}, {x.dtype}, arg={x.arg}, src=(%s))")
   # *** uop syntactic sugar
