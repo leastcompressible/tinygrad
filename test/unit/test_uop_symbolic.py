@@ -158,9 +158,8 @@ class TestSymbolic(unittest.TestCase):
   def test_mul_1(self):
     self.helper_test_variable(Variable("a", 0, 8)*1, 0, 8, "a")
 
-  @unittest.expectedFailure
   def test_mul_neg_1(self):
-    self.helper_test_variable((Variable("a", 0, 2)*-1)//3, -1, 0, "((((a*-1)+3)//3)+-1)")
+    self.helper_test_variable((Variable("a", 0, 2)*-1)//3, -1, 0, {"((((a*-1)+3)//3)+-1)", "((-a)//3)"})
 
   def test_mul_2(self):
     self.helper_test_variable(Variable("a", 0, 8)*2, 0, 16, "(a*2)")
@@ -180,10 +179,9 @@ class TestSymbolic(unittest.TestCase):
   def test_div_min_max(self):
     self.helper_test_variable(Variable("a", 0, 7) // 2, 0, 3, "(a//2)")
 
-  @unittest.expectedFailure
   def test_div_neg_min_max(self):
-    self.helper_test_variable(Variable("a", 0, 7) // -2, -4, 0, "((((a*-1)+8)//2)+-4)")
-    self.helper_test_variable(Variable("a", 0, 6) // -2, -3, 0, "((((a*-1)+6)//2)+-3)")
+    self.helper_test_variable(Variable("a", 0, 7) // -2, -4, 0, {"((((a*-1)+8)//2)+-4)", "((((-a)+8)//2)+(-4))"})
+    self.helper_test_variable(Variable("a", 0, 6) // -2, -3, 0, {"((((a*-1)+6)//2)+-3)", "((((-a)+6)//2)+(-3))"})
 
   def test_sum_div_remove(self):
     self.helper_test_variable(Node.sum([Variable("a", 0, 7), Variable("b", 0, 3)]) // 20, 0, 0, "0")
@@ -318,18 +316,16 @@ class TestSymbolic(unittest.TestCase):
   def test_sum_div_partial_remove(self):
     self.helper_test_variable(Node.sum([Variable("idx0", 0, 127)*4, Variable("idx2", 0, 3)])//4, 0, 127, "idx0")
 
-  @unittest.expectedFailure
   def test_div_numerator_negative(self):
-    self.helper_test_variable((Variable("idx", 0, 9)*-10)//11, -9, 0, "((((idx*-10)+99)//11)+-9)")
+    self.helper_test_variable((Variable("idx", 0, 9)*-10)//11, -9, 0, {"((((idx*-10)+99)//11)+-9)", "((idx*(-10))//11)"})
 
   def test_div_into_mod(self):
     self.helper_test_variable((Variable("idx", 0, 16)*4)%8//4, 0, 1, "(idx%2)")
 
-  @unittest.expectedFailure
   def test_div_neg_cancel(self):
-    self.helper_test_variable((-Variable("idx", 0, 100)+199)//-4 + 50, 0, 25, "((1+idx)//4)")
+    self.helper_test_variable((-Variable("idx", 0, 100)+199)//-4 + 50, 0, 25, {"((1+idx)//4)", "((idx+1)//4)"})
     self.helper_test_variable((-Variable("idx", 0, 100)+200)//-4 + 50, 0, 25, "(idx//4)")
-    self.helper_test_variable((-Variable("idx", 0, 100)+201)//-4 + 50, -1, 24, "(((3+idx)//4)+-1)")
+    self.helper_test_variable((-Variable("idx", 0, 100)+201)//-4 + 50, -1, 24, {"(((3+idx)//4)+-1)", "(((idx+3)//4)+(-1))"})
 
 @unittest.skip("not supported on uops yet")
 class TestSymbolicNumeric(unittest.TestCase):

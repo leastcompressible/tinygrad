@@ -228,6 +228,8 @@ constant_folder = PatternMatcher([
   # div folding
   (NOp.var('x') // NOp.cvar('c'), lambda x,c: x.const(x.vmin.arg//c.arg) if c.arg > 0 and x.vmin.arg//c.arg == x.vmax.arg//c.arg else None),
   (NOp.var('x') // NOp.cvar('c'), lambda x,c: d if c.arg > 0 and (d:=x.divides(c.arg)) is not None else None),
+  # div negative denominator
+  (NOp.var('x') // NOp.cvar('c'), lambda x,c: (-x+((d:=x.vmax.arg//c.arg)*c.arg))//(-c.arg)+d if c.arg < 0 else None),
   # mod folding
   (NOp.var('x') % NOp.cvar('c'), lambda x,c: x if 0 <= x.vmin.arg <= x.vmax.arg < c.arg else None),
   # mod reduction
