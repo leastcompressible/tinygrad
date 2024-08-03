@@ -252,7 +252,7 @@ constant_folder = PatternMatcher([
    lambda x,x2,c0,c1: x.lt(c1.arg//c0.arg) if c1.arg % c0.arg == 0 and c0.arg > x2.vmax.arg and x2.vmin.arg >= 0 else None),
   # neg lt -> flip
   (NOp.var('x').lt(NOp.var('y', dtypes.int)), lambda x,y: (y.const(-y.arg) if y.op is UOps.CONST else -y).lt(
-    x.const(-x.arg) if x.op is UOps.CONST else -x) if x.vmax.arg <= 0 and y.vmax.arg <= 0 else None),
+    x.const(-x.arg) if x.op is UOps.CONST else -x) if x.vmax.arg < 0 and y.vmax.arg < 0 else None),
   # ** div **
   # div folding
   (NOp.var('x') // NOp.cvar('c'), lambda x,c: x.const(x.vmin.arg//c.arg) if c.arg > 0 and x.vmin.arg//c.arg == x.vmax.arg//c.arg else None),
