@@ -125,10 +125,10 @@ def div_folding(x:UOp, c:int) -> Optional[UOp]:
 
   if not something_changed: return cast(UOp, x.divides(gcd))//(c//gcd) if gcd != c and gcd != 1 else None
   rem:Optional[UOp] = functools.reduce(operator.add, remainder) if remainder else None
-  if rem is not None and 0 <= rem.vmin.arg and rem.vmax.arg < c: rem = None
+  if rem is not None: rem = div_folding(rem, gcd)  # this cannot be None
   quo:Optional[UOp] = functools.reduce(operator.add, quotient) if quotient else None
-  if quo is None: return x.const(0) if rem is None else cast(UOp, rem.divides(gcd))//(c//gcd)
-  return quo if rem is None else quo+cast(UOp, rem.divides(gcd))//(c//gcd)
+  if quo is None: return x.const(0) if rem is None else rem//(c//gcd)
+  return quo if rem is None else quo+rem//(c//gcd)
 
 # ***** transcendental *****
 
