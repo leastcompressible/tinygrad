@@ -88,7 +88,7 @@ jobs:
     - name: Install dependencies
       run: pip install -e '.[linting,testing,docs]' --extra-index-url https://download.pytorch.org/whl/cpu
     - name: Lint with pylint
-      run: python -m pylint --disable=all -e W0311 -e C0303 --jobs=0 --indent-string='  ' **/*.py
+      run: python -m pylint --disable=all -e W0311 -e C0303 --jobs=0 --indent-string='  ' tinygrad/ test/
     - name: Lint with ruff
       run: |
         pip3 install --upgrade --force-reinstall ruff
