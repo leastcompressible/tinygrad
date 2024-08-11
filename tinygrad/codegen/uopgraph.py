@@ -263,8 +263,9 @@ constant_folder = PatternMatcher([
   # if x is nan or inf it should render the nan value.
   # NOTE: this can be wrong for loaded NaN
   (NOp.var('x') * 0, lambda x: x.const(float('nan') if isinstance(x.arg, float) and (math.isnan(x.arg) or math.isinf(x.arg)) else 0)),
-  # x-x -> 0
-  (NOp.var('x') - NOp.var('x'), lambda x: x.const(0)),
+  # x-x -> 0 or -x+x -> 0
+  (UPat(UOps.ALU, BinaryOps.ADD, src=[UPat(UOps.ALU, UnaryOps.NEG, src=(UPat(name='x'),)), UPat(name='x')]), lambda x: x.const(0)),
+  # ALU x has same min and max -> x is CONST
   (UPat(UOps.ALU, name='x'), lambda x: x.const(x.vmin.arg) if x.vmin.arg == x.vmax.arg else None),
   # ** load/store folding **
   (NOp.store(NOp.var("buf"), NOp.var("idx"), NOp.load(NOp.var("buf"), NOp.var("idx"))), lambda buf,idx:UOp(UOps.NOOP)),
