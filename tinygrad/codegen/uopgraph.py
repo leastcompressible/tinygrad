@@ -182,9 +182,6 @@ def index_collapse(idx,rng,buf,add,mul,ld,reduce):
 
 # this is symbolic 2.0
 constant_folder = PatternMatcher([
-  # bigint is rewritten to int32
-  (UPat({UOps.CONST, UOps.ALU, UOps.SPECIAL, UOps.RANGE, UOps.EXPAND}, dtype=dtypes.bigint, name="x"),
-   lambda x: UOp(x.op, dtypes.int32, x.src, x.arg)),
   # VECTORIZE/GEP
   (NOp(UOps.GEP, src=(NOp(UOps.VECTORIZE, name="cast"),), name="gep"), lambda gep, cast: cast.src[gep.arg]),
   *[(NOp(UOps.VECTORIZE, dtypes.float.vec(i), tuple(NOp(UOps.GEP, dtypes.float,
@@ -530,6 +527,9 @@ class UOpGraph:
 
     # do graph rewrite
     sink = graph_rewrite(self.sink, self.folder)
+    # bigint is rewritten to int32
+    sink = graph_rewrite(self.sink, PatternMatcher([(UPat({UOps.CONST, UOps.ALU, UOps.SPECIAL, UOps.RANGE, UOps.EXPAND},
+                                                          dtype=dtypes.bigint, name="x"), lambda x: UOp(x.op, dtypes.int32, x.src, x.arg)),]))
 
     # expand
     UOpGraph.cnt += 1
