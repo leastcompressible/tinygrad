@@ -151,11 +151,7 @@ class IndependentLowerer:
     self.uop_cache: Dict[LazyOp, UOp] = {}
     return self.to_uop(ast)
 
-  def to_uop(self, x:LazyOp) -> UOp:
-    if uop:=self.uop_cache.get(x, None): return uop
-    ret = self._to_uop(x)
-    self.uop_cache[x] = ret
-    return ret
+  def to_uop(self, x:LazyOp) -> UOp: return self.uop_cache.setdefault(x, self._to_uop(x))
 
   def _to_uop(self, x:LazyOp) -> UOp:
     if x.op in BufferOps:
