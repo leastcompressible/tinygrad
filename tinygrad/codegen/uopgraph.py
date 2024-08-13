@@ -533,7 +533,7 @@ class UOpGraph:
     sink = graph_rewrite(self.sink, self.folder)
 
     # rewrite pyint to int32
-    sink = graph_rewrite(sink, PatternMatcher([(UPat({UOps.CONST, UOps.ALU, UOps.SPECIAL, UOps.RANGE}, dtype=dtypes.pyint, name="x"),
+    sink = graph_rewrite(sink, PatternMatcher([(UPat({UOps.CONST, UOps.ALU, UOps.SPECIAL, UOps.RANGE, UOps.DEFINE_VAR}, dtype=dtypes.pyint, name="x"),
       lambda x: UOp(x.op, dtypes.int32, x.src, x.arg))]))
 
     # expand
