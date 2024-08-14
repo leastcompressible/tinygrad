@@ -96,7 +96,7 @@ def mod_folding(x:UOp, c:int) -> Optional[UOp]:
       something_changed = True
     else: remainder.append(u)
   if not something_changed: return None
-  return functools.reduce(operator.add, remainder) if remainder else x.const(0)
+  return functools.reduce(operator.add, remainder)%c if remainder else x.const(0)
 
 def div_folding(x:UOp, c:int) -> Optional[UOp]:
   # simplify x // c, None means no change
@@ -234,7 +234,7 @@ constant_folder = PatternMatcher([
     arg=BinaryOps.ADD, name="reduce", allow_any_len=True), index_collapse),
   # other arange folders
   (NOp.cvar("c1") - (NOp.var("x") + NOp.cvar("c2")), lambda c1, c2, x: (c1-c2)-x),  # c1 - (x + c2) -> (c1-c2) - x
-  (-(NOp.var("x") * NOp.cvar("c1")), lambda x, c1: x*-c1),
+  (-(NOp.var("x") * NOp.cvar("c")), lambda x, c: x*-c),
   # max folding
   (NOp.max(NOp.var('x'), NOp.var('y')), lambda x,y: x if x.vmin.arg >= y.vmax.arg else y if x.vmax.arg <= y.vmin.arg else None),
   # const rules
@@ -245,8 +245,8 @@ constant_folder = PatternMatcher([
   # GEP on a const is the const
   (NOp(UOps.GEP, src=(NOp.cvar("x"),), name="root"), lambda root,x: root.const(x.arg)),
   # a conditional with the same results either way is a noop, also fold const conditionals
-  (NOp.var().where(NOp.var("val"), NOp.var("val")), lambda val: val),
-  (NOp.cvar('gate').where(NOp.var('c0'), NOp.var('c1')), lambda gate, c0, c1: c0 if gate.arg else c1),
+  (NOp.var().where(NOp.var("x"), NOp.var("x")), lambda x: x),
+  (NOp.cvar('gate').where(NOp.var('x0'), NOp.var('x1')), lambda gate, x0, x1: x0 if gate.arg else x1),
   # ** constant folding **
   (UPat(UOps.ALU, name="root", src=UPat(UOps.CONST)), lambda root: root.const(exec_alu(root.arg, root.dtype, [x.arg for x in root.src]))),
   # ** self folding **
@@ -265,6 +265,7 @@ constant_folder = PatternMatcher([
   (NOp.var('x') * 0, lambda x: x.const(float('nan') if isinstance(x.arg, float) and (math.isnan(x.arg) or math.isinf(x.arg)) else 0)),
   # x-x -> 0
   (NOp.var('x') - NOp.var('x'), lambda x: x.const(0)),
+  # an ALU with min==max is a CONST
   (UPat(UOps.ALU, name='x'), lambda x: x.const(x.vmin.arg) if x.vmin.arg == x.vmax.arg else None),
   # ** load/store folding **
   (NOp.store(NOp.var("buf"), NOp.var("idx"), NOp.load(NOp.var("buf"), NOp.var("idx"))), lambda buf,idx:UOp(UOps.NOOP)),
@@ -279,16 +280,18 @@ constant_folder = PatternMatcher([
   # mul add lt
   (((NOp.cvar('c0')*NOp.var('x'))+NOp.var('x2')).lt(NOp.cvar('c1')),
    lambda x,x2,c0,c1: x.lt(c1.arg//c0.arg) if c1.arg % c0.arg == 0 and c0.arg > x2.vmax.arg and x2.vmin.arg >= 0 else None),
-  # generic lt folding (use div)
-  (NOp.var('x').lt(NOp.cvar('c')), lambda x,c: newx.src[0].lt(newx.src[1]) if 0 < c.arg and dtypes.is_int(x.dtype) and \
-   not dtypes.is_unsigned(x.dtype) and (newx:=div_folding(x,c.arg)) is not None and newx.op is UOps.ALU and newx.arg is BinaryOps.IDIV else None),
+  # generic lt folding (using div_folding)
+  (NOp.var('x').lt(NOp.cvar('c')), lambda x,c: ret.src[0].lt(ret.src[1]) if 0 < c.arg and dtypes.is_int(x.dtype) and \
+   not dtypes.is_unsigned(x.dtype) and (ret:=div_folding(x,c.arg)) is not None and ret.op is UOps.ALU and ret.arg is BinaryOps.IDIV else None),
+  # c0 + x < c1 -> x < c1 - c0
+  ((NOp.cvar("c0") + NOp.var("x")).lt(NOp.cvar("c1")), lambda x,c0,c1: UOp.lt(x, x.const(exec_alu(BinaryOps.ADD, x.dtype, [c1.arg, -c0.arg])))),
   # ** div **
   # # div folding
   (NOp.var('x') // NOp.cvar('c'), lambda x,c:
-   newx if 0 < c.arg and not dtypes.is_unsigned(x.dtype) and (newx:=div_folding(x,c.arg)) is not None else None),
+   ret if 0 < c.arg and not dtypes.is_unsigned(x.dtype) and (ret:=div_folding(x,c.arg)) is not None else None),
   # ** mod **
-  # apply mod to mod input
-  (NOp.var('x') % NOp.cvar('c'), lambda x,c: newx%c if 0 < c.arg and (newx:=mod_folding(x,c.arg)) is not None else None),
+  # mod folding
+  (NOp.var('x') % NOp.cvar('c'), lambda x,c: ret if 0 < c.arg and (ret:=mod_folding(x,c.arg)) is not None else None),
   # remove mod
   (NOp.var('x') % NOp.cvar('c'), lambda x,c:\
    x-(x.vmin.arg//c.arg)*c.arg if 0 < c.arg and 0 <= x.vmin.arg and x.vmin.arg//c.arg == x.vmax.arg//c.arg else None),
@@ -312,8 +315,6 @@ constant_folder = PatternMatcher([
   ((NOp.var("x") // NOp.cvar("c0")) // NOp.cvar("c1"), lambda x,c0,c1: x//x.const(exec_alu(BinaryOps.MUL, x.dtype, [c0.arg, c1.arg]))),
   # (x/x1)/x2 -> x/(x1*x2)
   ((NOp.var("x") / NOp.var("x2")) / NOp.var("x3"), lambda x,x2,x3: x/(x2*x3)),
-  # c0 + x < c1 -> x < c1 - c0
-  ((NOp.cvar("c0") + NOp.var("x")).lt(NOp.cvar("c1")), lambda x,c0,c1: UOp.lt(x, x.const(exec_alu(BinaryOps.ADD, x.dtype, [c1.arg, -c0.arg])))),
   # (x+x*c0)-> x*(c0+1)
   (NOp.var("x") + NOp.var("x") * NOp.cvar("c0"), lambda x,c0: x*(c0.arg+1)),
   # x!=0 -> (bool)x
@@ -343,9 +344,9 @@ constant_folder = PatternMatcher([
   (NOp(UOps.SINK, name="root"),
     lambda root: UOp(UOps.SINK, root.dtype, a, root.arg) if len(a:=tuple(x for x in root.src if x.op is not UOps.NOOP)) != len(root.src) else None),
   # ** move add consts to end (NOTE: this is still happening before constant folding) **
-  (UPat(UOps.ALU, BinaryOps.ADD, src=(UPat(UOps.CONST, name='c1'), UPat(name='x'))), lambda c1,x: x+c1 if x.op is not UOps.CONST else None),
-  (UPat(UOps.ALU, BinaryOps.ADD, src=[UPat(UOps.ALU, BinaryOps.ADD, src=(UPat(name='x'), UPat(UOps.CONST, name='c1'))), UPat(name='y')]),
-    lambda x,c1,y: (x+y)+c1),
+  (UPat(UOps.ALU, BinaryOps.ADD, src=(UPat(UOps.CONST, name='c'), UPat(name='x'))), lambda c,x: x+c if x.op is not UOps.CONST else None),
+  (UPat(UOps.ALU, BinaryOps.ADD, src=[UPat(UOps.ALU, BinaryOps.ADD, src=(UPat(name='x'), UPat(UOps.CONST, name='c'))), UPat(name='y')]),
+    lambda x,c,y: (x+y)+c),
 ])
 
 # *** uop expander ***
