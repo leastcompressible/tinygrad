@@ -37,10 +37,9 @@ print("******** second, the Device ***********")
 DEVICE = "CLANG"   # NOTE: you can change this!
 
 import struct
-from tinygrad.dtype import PtrDType, dtypes
+from tinygrad.dtype import dtypes
 from tinygrad.device import Buffer, Device
-from tinygrad.ops import BinaryOps, MetaOps
-from tinygrad.codegen.uops import UOp, UOps
+from tinygrad.ops import LazyOp, BufferOps, MemBuffer, BinaryOps, MetaOps
 from tinygrad.shape.shapetracker import ShapeTracker
 
 # allocate some buffers + load in values
@@ -50,19 +49,15 @@ b = Buffer(DEVICE, 1, dtypes.int32).allocate().copyin(memoryview(bytearray(struc
 # NOTE: a._buf is the same as the return from MallocAllocator.alloc
 
 # describe the computation
-buf_1 = UOp(UOps.DEFINE_GLOBAL, PtrDType(dtypes.int32), (), 1)
-buf_2 = UOp(UOps.DEFINE_GLOBAL, PtrDType(dtypes.int32), (), 2)
-ld_1 = UOp(UOps.LOAD, dtypes.int32, (buf_1, *UOp.from_st(ShapeTracker.from_shape((1,)))))
-ld_2 = UOp(UOps.LOAD, dtypes.int32, (buf_2, *UOp.from_st(ShapeTracker.from_shape((1,)))))
-alu = ld_1 + ld_2
-output_buf = UOp(UOps.DEFINE_GLOBAL, PtrDType(dtypes.int32), (), 0)
-idx, valid = UOp.from_st(ShapeTracker.from_shape((1,)))
-st_0 = UOp(UOps.STORE, None, (output_buf, idx, alu, valid))
-s = UOp(UOps.SINK, None, (st_0,))
+ld_1 = LazyOp(BufferOps.LOAD, (), MemBuffer(1, dtypes.int32, ShapeTracker.from_shape((1,))))
+ld_2 = LazyOp(BufferOps.LOAD, (), MemBuffer(2, dtypes.int32, ShapeTracker.from_shape((1,))))
+alu = LazyOp(BinaryOps.ADD, (ld_1, ld_2))
+st_0 = LazyOp(BufferOps.STORE, (alu,), MemBuffer(0, dtypes.int32, ShapeTracker.from_shape((1,))))
+k = LazyOp(MetaOps.KERNEL, (st_0,))
 
 # convert the computation to a "linearized" format (print the format)
 from tinygrad.engine.realize import get_kernel, CompiledRunner
-kernel = get_kernel(Device[DEVICE].renderer, s).linearize()
+kernel = get_kernel(Device[DEVICE].renderer, k).linearize()
 kernel.uops.print()
 
 # compile a program (and print the source)
