@@ -188,11 +188,10 @@ jobs:
       - if: ${{ matrix.task == 'optimage' }}
         name: Run Kernel Count Test
         run: PYTHONPATH="." GPU=1 python -m pytest -n=auto test/external/external_test_opt.py
-      # - if: ${{ matrix.task == 'optimage'}}
-      #   name: Test GPU IMAGE=2 ops + training
-      #   run: |
-      #     PYTHONPATH="." GPU=1 IMAGE=2 python -m pytest -n=auto test/test_ops.py
-      #     PYTHONPATH="." GPU=1 IMAGE=2 python3 test/models/test_end2end.py TestEnd2End.test_linear_mnist
+      - if: ${{ matrix.task == 'optimage'}}
+        name: Test GPU IMAGE=2 ops + training
+        run: |
+          PYTHONPATH="." GPU=1 IMAGE=2 python3 test/models/test_end2end.py TestEnd2End.test_linear_mnist
       - if: ${{ matrix.task == 'optimage' }}
         name: Test openpilot model compile and size
         run: |
