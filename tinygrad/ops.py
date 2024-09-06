@@ -623,7 +623,7 @@ python_alu: Dict[Op, Callable]  = {
 def truncate_fp16(x):
   try:
     x = float(x)
-    struct.pack("@e", x)
+    # struct.pack("@e", x)
     return x
   except OverflowError: return math.copysign(math.inf, x)
 
