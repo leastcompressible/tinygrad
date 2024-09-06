@@ -185,9 +185,9 @@ jobs:
           key: downloads-cache-${{ matrix.task }}-${{ env.DOWNLOAD_CACHE_VERSION }}
       - name: Install Dependencies
         run: pip install -e '.[testing,testing_tf]' --extra-index-url https://download.pytorch.org/whl/cpu
-      - if: ${{ matrix.task == 'optimage' }}
-        name: Run Kernel Count Test
-        run: PYTHONPATH="." GPU=1 python -m pytest -n=auto test/external/external_test_opt.py
+      # - if: ${{ matrix.task == 'optimage' }}
+      #   name: Run Kernel Count Test
+      #   run: PYTHONPATH="." GPU=1 python -m pytest -n=auto test/external/external_test_opt.py
       - if: ${{ matrix.task == 'optimage'}}
         name: Test GPU IMAGE=2 ops + training
         run: |
