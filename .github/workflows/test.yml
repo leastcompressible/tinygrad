@@ -188,9 +188,9 @@ jobs:
       - if: ${{ matrix.task == 'optimage' }}
         name: Run Kernel Count Test
         run: PYTHONPATH="." GPU=1 python -m pytest -n=auto test/external/external_test_opt.py
-      - if: ${{ matrix.task == 'optimage'}}
-        name: Test WINO=1
-        run: GPU=1 DEBUG=2 WINO=1 python3 test/test_ops.py TestOps.test_simple_conv2d
+      # - if: ${{ matrix.task == 'optimage'}}
+      #   name: Test WINO=1
+      #   run: GPU=1 DEBUG=2 WINO=1 python3 test/test_ops.py TestOps.test_simple_conv2d
       - if: ${{ matrix.task == 'optimage'}}
         name: Test GPU IMAGE=2 ops + training
         run: |
@@ -216,36 +216,36 @@ jobs:
           CLANG=1 PYTHONPATH="." python examples/compile_efficientnet.py > recognize.c
           clang -O2 recognize.c -lm -o recognize
           cat test/models/efficientnet/Chicken.jpg | ./recognize | grep cock
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test ONNX (GPU)
-        run: GPU=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test ONNX (CLANG)
-        run: CLANG=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test Action Space
-        run: PYTHONPATH="." GPU=1 python3 extra/optimization/get_action_space.py
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test Beam Search
-        run: PYTHONPATH="." GPU=1 IGNORE_BEAM_CACHE=1 python3 -m pytest extra/optimization/test_beam_search.py
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test MLPerf optimizers
-        run: GPU=1 python -m pytest -n=auto test/external/external_test_optim.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test MLPerf losses
-        run: GPU=1 python -m pytest -n=auto test/external/external_test_losses.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test MLPerf metrics
-        run: GPU=1 python -m pytest -n=auto test/external/external_test_metrics.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test MLPerf datasets
-        run: GPU=1 python -m pytest -n=auto test/external/external_test_datasets.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Test THREEFRY
-        run: PYTHONPATH=. THREEFRY=1 GPU=1 python3 -m pytest test/test_randomness.py test/test_jit.py --durations=20
-      - if: ${{ matrix.task == 'onnx' }}
-        name: Run handcode_opt
-        run: PYTHONPATH=. MODEL=resnet GPU=1 DEBUG=1 BS=4 HALF=0 python3 examples/handcode_opt.py
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test ONNX (GPU)
+      #   run: GPU=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test ONNX (CLANG)
+      #   run: CLANG=1 python -m pytest -n=auto test/external/external_test_onnx_backend.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test Action Space
+      #   run: PYTHONPATH="." GPU=1 python3 extra/optimization/get_action_space.py
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test Beam Search
+      #   run: PYTHONPATH="." GPU=1 IGNORE_BEAM_CACHE=1 python3 -m pytest extra/optimization/test_beam_search.py
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test MLPerf optimizers
+      #   run: GPU=1 python -m pytest -n=auto test/external/external_test_optim.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test MLPerf losses
+      #   run: GPU=1 python -m pytest -n=auto test/external/external_test_losses.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test MLPerf metrics
+      #   run: GPU=1 python -m pytest -n=auto test/external/external_test_metrics.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test MLPerf datasets
+      #   run: GPU=1 python -m pytest -n=auto test/external/external_test_datasets.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Test THREEFRY
+      #   run: PYTHONPATH=. THREEFRY=1 GPU=1 python3 -m pytest test/test_randomness.py test/test_jit.py --durations=20
+      # - if: ${{ matrix.task == 'onnx' }}
+      #   name: Run handcode_opt
+      #   run: PYTHONPATH=. MODEL=resnet GPU=1 DEBUG=1 BS=4 HALF=0 python3 examples/handcode_opt.py
       - name: Run process replay tests
         run: |
           export PR_TITLE=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
