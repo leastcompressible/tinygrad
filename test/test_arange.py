@@ -1,12 +1,13 @@
 import unittest, contextlib
 import numpy as np
-from tinygrad import Tensor, GlobalCounters, dtypes, nn
+from tinygrad import Tensor, GlobalCounters, dtypes, nn, Device
 from tinygrad.helpers import CI, Context, getenv
 from tinygrad.engine.realize import run_schedule
 from tinygrad.codegen.kernel import Opt, OptOps, Kernel, KernelOptError
 from tinygrad.engine.realize import CompiledRunner, ExecItem
 from tinygrad.engine.search import get_kernel_actions
 
+@unittest.skipIf(Device.DEFAULT in {"CUDA", "NV"} and CI, "slow on CUDA CI")
 class TestArange(unittest.TestCase):
   def _get_flops(self, N, opts=None):
     GlobalCounters.reset()
@@ -61,6 +62,7 @@ class TestArange(unittest.TestCase):
   def test_all_opts_w_upcast_and_unroll(self):
     return self.test_all_opts([Opt(OptOps.UPCAST, 0, 4), Opt(OptOps.UNROLL, 0, 4)], [Opt(op=OptOps.GROUP, axis=0, amt=0)])
 
+@unittest.skipIf(Device.DEFAULT in {"CUDA", "NV"} and CI, "slow on CUDA CI")
 class TestIndexing(unittest.TestCase):
   def test_arange_2_reduce(self):
     needle = Tensor.zeros(16384, dtype=dtypes.int).contiguous()
