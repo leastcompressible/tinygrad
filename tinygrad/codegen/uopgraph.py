@@ -137,6 +137,9 @@ def div_folding(x:UOp, c:int) -> Optional[UOp]:
   if quo is None: return x.const_like(0) if rem is None else cast(UOp, div_folding(rem, div))//(c//div)
   return quo if rem is None else cast(UOp, div_folding(rem, div))//(c//div)+quo
 
+def div_as_where(x:UOp, c:int) -> Optional[UOp]:
+  return x.cast(dtypes.bool).where(UOp.const(x.dtype, 1), UOp.const(x.dtype, 0)) if 0 <= x.vmin and x.vmax <= c else None
+
 def lt_folding(x:UOp, c:int) -> Optional[UOp]:
   if (newx:=div_folding(x,c)) is not None and newx.op is UOps.ALU and newx.arg is BinaryOps.IDIV: return newx.src[0].lt(newx.src[1])
   return cast(UOp, x.divides(g)).lt(c//g) if ((g:=math.gcd(x.const_factor(), c)) > 1) else None
@@ -428,6 +431,9 @@ constant_folder = PatternMatcher([
   # # div folding
   (UPat.var("x") // UPat.cvar("c", vec=False), lambda x,c:
    newx if 0 < c.arg and not dtypes.is_unsigned(x.dtype) and (newx:=div_folding(x,c.arg)) is not None else None),
+  # div as where
+  ((UPat.var("x") + UPat.cvar("c0", vec=False)) // UPat.cvar("c1", vec=False), lambda x,c0,c1:
+   newx if 0 < c0.arg == c1.arg-1 and not dtypes.is_unsigned(x.dtype) and (newx:=div_as_where(x,c1.arg)) is not None else None),
   # ** mod **
   # mod folding
   (UPat.var("x") % UPat.cvar("c", vec=False), lambda x,c: newx if 0 < c.arg and (newx:=mod_folding(x,c.arg)) is not None else None),
