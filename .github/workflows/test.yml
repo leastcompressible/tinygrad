@@ -486,7 +486,7 @@ jobs:
           ./autogen_stubs.sh opencl
           diff /tmp/opencl.py.bak tinygrad/runtime/autogen/opencl.py
       - name: Verify CUDA autogen
-        if: matrix.backend == 'nv'
+        if: matrix.backend == 'ptx'
         run: |
           cp tinygrad/runtime/autogen/cuda.py /tmp/cuda.py.bak
           cp tinygrad/runtime/autogen/nv_gpu.py /tmp/nv_gpu.py.bak
