@@ -75,7 +75,7 @@ def frexp(v:UOp) -> Tuple[UOp, UOp]:
   # m1 = masks for mantissa, m2 = masks to normalize the mantissa.
   m1 = {dtypes.float64: 0x000FFFFFFFFFFFFF, dtypes.float32: 0x807FFFFF, dtypes.float16: 0x83FF}[v.dtype]
   m2 = {dtypes.float64: 0x3FE0000000000000, dtypes.float32: 0x3F000000, dtypes.float16: 0x3C00}[v.dtype]
-  bias = {dtypes.float64: 1022, dtypes.float32: 126, dtypes.float16: 15}[v.dtype]
+  bias = exponent_bias(v.dtype)
   bits = float_to_bits(v)
   exponent = shr(bits, significand_bits(v.dtype)) & exponent_mask(v.dtype)
   exponent_zero = exponent.ne(0.0)
