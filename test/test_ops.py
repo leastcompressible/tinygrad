@@ -607,11 +607,11 @@ class TestOps(unittest.TestCase):
   @unittest.skipIf(TRANSCENDENTAL and Device.DEFAULT=="AMD", "TODO: remu crashes")
   def test_log(self):
     helper_test_op([(45,65)], torch.log, Tensor.log)
-    helper_test_op(None, torch.log, Tensor.log, vals=[[math.inf, -math.inf, math.nan]])
+    helper_test_op(None, torch.log, Tensor.log, vals=[[math.inf, -math.inf, math.nan, 0.0, 1e-200]])
     helper_test_op([()], torch.log, Tensor.log)
   def test_log2(self):
     helper_test_op([(45,65)], torch.log2, Tensor.log2)
-    helper_test_op(None, torch.log2, Tensor.log2, vals=[[math.inf, -math.inf, math.nan]])
+    helper_test_op(None, torch.log2, Tensor.log2, vals=[[math.inf, -math.inf, math.nan, 0.0, 1e-200]])
     helper_test_op([()], torch.log2, Tensor.log2)
 
   @unittest.skipIf(TRANSCENDENTAL and Device.DEFAULT=="AMD", "TODO: remu crashes")
