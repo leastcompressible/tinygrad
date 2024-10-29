@@ -10,18 +10,18 @@ from tinygrad.renderer import Renderer
 # **************** Device ****************
 
 class _Device:
-  def __init__(self) -> None: self._devices: List[str] = [x.stem[len("ops_"):].upper() for x in (pathlib.Path(__file__).parent/"runtime").iterdir() if x.stem.startswith("ops_")]  # noqa: E501
   @functools.lru_cache(maxsize=None)  # this class is a singleton, pylint: disable=method-cache-max-size-none
-  def _canonicalize(self, device:str) -> str: return (device.split(":", 1)[0].upper() + ((":"+device.split(":", 1)[1]) if ':' in device else '')).replace(":0", "")   # noqa: E501
+  def _canonicalize(self, device:str) -> str: return ((d:=device.split(":", 1)[0].upper()) + device[len(d):]).rstrip(":0")
   # NOTE: you can't cache canonicalize in case Device.DEFAULT changes
-  def canonicalize(self, device:Optional[str]) -> str: return self._canonicalize(device) if device is not None else Device.DEFAULT
+  def canonicalize(self, device:Optional[str]) -> str: return Device.DEFAULT if device is None else self._canonicalize(device)
   def __getitem__(self, ix:str) -> Compiled: return self.__get_canonicalized_item(self.canonicalize(ix))
   @functools.lru_cache(maxsize=None)  # this class is a singleton, pylint: disable=method-cache-max-size-none
   def __get_canonicalized_item(self, ix:str) -> Compiled:
     cpn = multiprocessing.current_process().name
-    assert (cpn == "MainProcess") or ix.split(":")[0] in ["DISK", "NPY"], f"can only open device {ix} from parent, not {cpn}"
     x = ix.split(":")[0].upper()
-    ret = [cls for cname, cls in inspect.getmembers(importlib.import_module(f'{__name__.split(".")[0]}.runtime.ops_{x.lower()}')) if (cname.lower() == x.lower() + "device") and x in self._devices][0](ix)  # noqa: E501
+    assert (cpn == "MainProcess") or x in ["DISK", "NPY"], f"can only open device {ix} from parent, not {cpn}"
+    ret = [cls for cname, cls in inspect.getmembers(importlib.import_module(f'{__name__.split(".")[0]}.runtime.ops_{x.lower()}')) \
+           if (cname.lower() == x.lower() + "device")][0](ix)
     if DEBUG >= 1: print(f"opened device {ix} from pid:{os.getpid()}")
     return ret
   @property
@@ -31,7 +31,8 @@ class _Device:
       with contextlib.suppress(Exception): yield self[device].dname
   @functools.cached_property
   def DEFAULT(self) -> str:
-    if (from_env:=next((d for d in self._devices if d not in ["DISK", "NPY"] and getenv(d) == 1), None)): return from_env
+    devices: List[str] = [x.stem[len("ops_"):].upper() for x in (pathlib.Path(__file__).parent/"runtime").iterdir() if x.stem.startswith("ops_")]
+    if (from_env:=next((d for d in devices if d not in ["DISK", "NPY"] and getenv(d) == 1), None)): return from_env
     try:
       device = next(self.get_available_devices())
       os.environ[device] = "1"   # we set this in environment for spawned children
