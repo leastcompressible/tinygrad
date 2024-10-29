@@ -71,7 +71,6 @@ def frexp(v:UOp) -> Tuple[UOp, UOp]:
   # special case of 0  # TODO: can we remove this case?
   mantissa = exponent.ne(0).where(mantissa, v)
   exp = exponent.ne(0).where(exp, exp.const_like(0))
-  if v.dtype == dtypes.float16: exp = exp.bitcast(dtypes.int16)
   return mantissa, exp
 
 def polyN(s:UOp, coeffs:List[float]) -> UOp: return functools.reduce(lambda u,c: u*s+c, coeffs, s.const_like(0))
