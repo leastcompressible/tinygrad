@@ -42,7 +42,7 @@ class SimpleMathTrait:
   def const_like(self:T, b:ConstType|Variable|Tuple[ConstType]) -> T: raise NotImplementedError
 
   # great functions you get!
-  def ufix(self, x): return self.const_like(x) if not isinstance(x, MathTrait) else x
+  def ufix(self, x): return self.const_like(x) if not isinstance(x, type(self)) else x
   def _binop(self, op, x, reverse): return self.ufix(x).alu(op, self) if reverse else self.alu(op, self.ufix(x))
   def logical_not(self): return self.ne(True)
   def neg(self):
