@@ -2,7 +2,7 @@ import unittest, math
 import numpy as np
 from tinygrad import dtypes
 from tinygrad.ops import UOp
-from tinygrad.codegen.transcendental import payne_hanek_reduction, cody_waite_reduction, frexp
+from tinygrad.codegen.transcendental import payne_hanek_reduction, cody_waite_reduction, frexp, rintk
 from test.helpers import eval_uop
 
 class TestReduction(unittest.TestCase):
@@ -38,6 +38,14 @@ class TestReduction(unittest.TestCase):
     mantissa, exponent = (eval_uop(u) for u in frexp(UOp.const(dtypes.float64, 5.0)))
     np.testing.assert_equal(mantissa, 0.625)
     np.testing.assert_equal(exponent, 3)
+
+  def test_rintk(self):
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, 5.0))), 5)
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, 5.5))), 5)
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, 5.999))), 5)
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, -5.0))), -5)
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, -5.5))), -5)
+    np.testing.assert_allclose(eval_uop(rintk(UOp.const(dtypes.float, -5.999))), -5)
 
 if __name__ == '__main__':
   unittest.main()

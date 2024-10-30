@@ -28,9 +28,8 @@ def shl(x:UOp, y:int) -> UOp: return x * (2**y)
 
 def rintk(d:UOp) -> UOp:
   """ceiling(d:float) -> int"""
-  assert d.dtype in TRANSCENDENTAL_SUPPORTED_DTYPES
   return_t = {dtypes.float64: dtypes.int64, dtypes.float32: dtypes.int32, dtypes.float16: dtypes.int16}[d.dtype]
-  return (d + d.lt(0.0).where(d.const_like(-0.5), d.const_like(0.5))).cast(return_t)
+  return d.cast(return_t)
 
 def pow2if(q:UOp, float_dtype:DType):
   """cast(2^q, float_dtype) where q is any integer in the range of [-126, 127]"""
