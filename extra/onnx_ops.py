@@ -2,7 +2,7 @@ import functools, io, math
 from typing import Union, Tuple, Optional, List, Any
 from tinygrad.tensor import Tensor, _broadcast_shape
 from tinygrad.dtype import ImageDType, dtypes
-from tinygrad.helpers import prod, flatten
+from tinygrad.helpers import prod, flatten, polyN
 from extra.onnx import DTYPE_MAP, to_python_const
 import numpy as np
 
@@ -507,12 +507,7 @@ def OneHot(indices: Tensor, depth: Tensor, values: Tensor, axis=-1):
 
 def Erf(x: Tensor):
   t = 1.0 / (1.0 + 0.3275911 * x.abs())
-  term1 = 0.254829592 * t
-  term2 = -0.284496736 * t ** 2
-  term3 = 1.421413741 * t ** 3
-  term4 = -1.453152027 * t ** 4
-  term5 = 1.061405429 * t ** 5
-  y = (term1 + term2 + term3 + term4 + term5)
+  y = polyN(t, [1.061405429, -1.453152027, 1.421413741, -0.284496736, 0.254829592, 0.0])
   z = 1.0 - y * (-x * x).exp()
   return (x > 0).where(z, -z)
 

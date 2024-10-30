@@ -2,7 +2,7 @@ import re, os
 from pathlib import Path
 from tinygrad.tensor import Tensor, cast
 from tinygrad import nn, dtypes
-from tinygrad.helpers import fetch, get_child
+from tinygrad.helpers import fetch, get_child, polyN
 from tinygrad.nn.state import get_parameters
 
 # allow for monkeypatching
@@ -236,7 +236,9 @@ def gelu(x):
 # approximation of the error function
 def erf(x):
   t = (1 + 0.3275911 * x.abs()).reciprocal()
-  return x.sign() * (1 - ((((1.061405429 * t + -1.453152027) * t + 1.421413741) * t + -0.284496736) * t + 0.254829592) * t * (-(x.square())).exp())
+  ft = polyN(t, [1.061405429, -1.453152027, 1.421413741, -0.284496736, 0.254829592, 0.0])
+  z = (1 - ft * (-(x.square())).exp())
+  return (x > 0).detach().where(z, -z)
 
 class BertIntermediate:
   def __init__(self, hidden_size, intermediate_size):
