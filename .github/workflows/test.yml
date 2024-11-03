@@ -573,7 +573,7 @@ jobs:
           DEBUG=5 PYTHONPATH=${{ github.workspace }} FORWARD_ONLY=1 python3 test/test_ops.py TestOps.test_add
       - name: Run pytest (not cuda or amd)
         if: matrix.backend!='ptx' && matrix.backend!='triton' && matrix.backend != 'amd' && matrix.backend != 'nv'
-        run: DEBUG=4 python -m pytest -rA test/test_setitem.py::TestSetitem::test_setitem_inplace_operator
+        run: RUN_PROCESS_REPLAY=1 DEBUG=4 python -m pytest -rA test/test_setitem.py::TestSetitem::test_setitem_inplace_operator
       # - name: Run test_ops with FUZZ_UOPS=1
       #   if: matrix.backend!='cuda' && matrix.backend!='ptx' && matrix.backend!='triton' && matrix.backend != 'amd' && matrix.backend != 'nv'
       #   run: FUZZ_UOPS=1 python -m pytest -n=auto test/test_ops.py --durations=20
