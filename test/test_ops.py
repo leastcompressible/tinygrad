@@ -809,19 +809,19 @@ class TestOps(unittest.TestCase):
   def test_einsum_shape_check(self):
     a = Tensor.zeros(3,8,10,5)
     b = Tensor.zeros(11,5,13,16,8)
-    with self.assertRaises(AssertionError):
+    with self.assertRaises(RuntimeError):
       Tensor.einsum('pqrs,tuqvr->pstuv',a,b)
 
   def test_einsum_arity_check1(self):
     a = Tensor.zeros(10,15)
     b = Tensor.zeros(15,20)
     c = Tensor.zeros(20,10)
-    with self.assertRaises(AssertionError):
+    with self.assertRaises(RuntimeError):
       Tensor.einsum('ij,jk->ij', a,b,c)
 
   def test_einsum_arity_check2(self):
     a = Tensor.zeros(10,10)
-    with self.assertRaises(AssertionError):
+    with self.assertRaises(RuntimeError):
       Tensor.einsum('ij,jk->ij', a)
 
   @unittest.skipIf(IMAGE>0, "no 1d dot for images")
@@ -831,15 +831,15 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65), (65)], lambda x,y: x.matmul(y), Tensor.dot)
     helper_test_op([(8,45,65), (65)], lambda x,y: x.matmul(y), Tensor.dot)
     helper_test_op([(65), (8,65,45)], lambda x,y: x.matmul(y), Tensor.dot)
-    self.helper_test_exception([(4), (1,2)], lambda x, y: x.matmul(y), Tensor.dot, expected=(RuntimeError, AssertionError))
-    self.helper_test_exception([(2,1), (4)], lambda x, y: x.matmul(y), Tensor.dot, expected=(RuntimeError, AssertionError))
-    self.helper_test_exception([(1), (4)], lambda x, y: x.matmul(y), Tensor.dot, expected=(RuntimeError, AssertionError))
+    self.helper_test_exception([(4), (1,2)], lambda x, y: x.matmul(y), Tensor.dot, expected=RuntimeError)
+    self.helper_test_exception([(2,1), (4)], lambda x, y: x.matmul(y), Tensor.dot, expected=RuntimeError)
+    self.helper_test_exception([(1), (4)], lambda x, y: x.matmul(y), Tensor.dot, expected=RuntimeError)
   def test_dot(self):
     helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5)
     helper_test_op([(8,45,65), (8,65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5)
-    self.helper_test_exception([(2, 4), (1, 3)], lambda x, y: x.matmul(y), Tensor.dot, expected=(RuntimeError, AssertionError))
-    self.helper_test_exception([(2, 1), (4, 3)], lambda x, y: x.matmul(y), Tensor.dot, expected=(RuntimeError, AssertionError))
-    with self.assertRaises(AssertionError):
+    self.helper_test_exception([(2, 4), (1, 3)], lambda x, y: x.matmul(y), Tensor.dot, expected=RuntimeError)
+    self.helper_test_exception([(2, 1), (4, 3)], lambda x, y: x.matmul(y), Tensor.dot, expected=RuntimeError)
+    with self.assertRaises(RuntimeError):
       a = Tensor(3.14)
       a.matmul(a)
   def test_mulacc_with_zero_strides(self):
@@ -906,7 +906,7 @@ class TestOps(unittest.TestCase):
     helper_test_op([(0), (0)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-7)
   def test_broadcastdot(self):
     helper_test_op([(10,45,65), (65,45)], lambda x,y: x @ y, Tensor.dot, atol=1e-4)
-    with self.assertRaises(AssertionError):
+    with self.assertRaises(RuntimeError):
       a = Tensor(3.14)
       b = Tensor.ones(3,3)
       a @ b
@@ -1633,10 +1633,10 @@ class TestOps(unittest.TestCase):
     # kernel size cannot be larger than input size
     self.helper_test_exception([(1,1,6,7), (6,1,3,3)],
                                lambda x,w:torch.nn.functional.conv2d(x,w,dilation=3),
-                               lambda x,w: Tensor.conv2d(x,w,dilation=3), expected=(RuntimeError, AssertionError))
+                               lambda x,w: Tensor.conv2d(x,w,dilation=3), expected=RuntimeError)
     # regression test for https://github.com/tinygrad/tinygrad/pull/7549/
     self.helper_test_exception([(2,16,2,2), (32,16,3,3)], lambda x,w:torch.nn.functional.conv2d(x,w), lambda x,w: Tensor.conv2d(x,w),
-                               expected=(RuntimeError, AssertionError))
+                               expected=RuntimeError)
 
   def test_large_input_conv2d(self):
     bs = 4
@@ -2110,9 +2110,9 @@ class TestOps(unittest.TestCase):
     helper_test_op([(4,5,6)], lambda x: x.gather(dim=-2, index=b), lambda x: x.gather(dim=-2, index=a))
     helper_test_op([(4,5,6)], lambda x: x.gather(dim=-3, index=b), lambda x: x.gather(dim=-3, index=a))
     self.helper_test_exception([(4,5,6)], lambda x: x.gather(dim=0, index=torch.tensor([1], dtype=torch.int64)),
-                                          lambda x: x.gather(dim=0, index=Tensor([1], dtype=dtypes.int32)), expected=(RuntimeError, AssertionError))
+                                          lambda x: x.gather(dim=0, index=Tensor([1], dtype=dtypes.int32)), expected=RuntimeError)
     self.helper_test_exception([(2,1,1)], lambda x: x.gather(dim=0, index=b),
-                                          lambda x: x.gather(dim=0, index=a), expected=(RuntimeError, AssertionError))
+                                          lambda x: x.gather(dim=0, index=a), expected=RuntimeError)
     helper_test_op(None, lambda x: x.gather(dim=0, index=torch.tensor([2, 1, 0, 1, 2], requires_grad=False)),
                          lambda x: x.gather(dim=0, index=Tensor([2, 1, 0, 1, 2])),
                          vals=[[1., 2., 3.]])

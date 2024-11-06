@@ -1191,9 +1191,10 @@ class Tensor(SimpleMathTrait):  # pylint: disable=abstract-method
     print(t.gather(1, Tensor([[0, 0], [1, 0]])).numpy())
     ```
     """
-    assert index.ndim == self.ndim, f"self.ndim must equal index.ndim, {self.ndim=}, {index.ndim=}"
+    if index.ndim != self.ndim: raise RuntimeError(f"self.ndim must equal index.ndim, {self.ndim=}, {index.ndim=}")
     dim = self._resolve_dim(dim)
-    assert all(s >= i for d,(s,i) in enumerate(zip(self.shape, index.shape)) if d != dim), "requires self.shape[d] >= index.shape[d] for all d != dim"
+    if not all(s >= i for d,(s,i) in enumerate(zip(self.shape, index.shape)) if d != dim):
+      raise RuntimeError(f"requires self.shape[d] >= index.shape[d] for all d != dim, getting {self.shape=}, {index.shape=}")
     index = index.to(self.device)
     x = self.shrink(tuple((0, i) if d != dim else None for d,i in enumerate(index.shape))).unsqueeze(-1).transpose(-1, dim)
     return ((index.unsqueeze(-1) == Tensor.arange(self.shape[dim], requires_grad=False, device=self.device)) * x).sum(-1, acc_dtype=self.dtype)
@@ -1919,7 +1920,7 @@ class Tensor(SimpleMathTrait):  # pylint: disable=abstract-method
     xs:Tuple[Tensor, ...] = argfix(*raw_xs)
     inputs_str, output = parse_formula(formula.replace(" ", ""), *xs)
     inputs = inputs_str.split(",")
-    assert len(xs) == len(inputs), f"number of inputs doesn't match number of operands in formula, expected {len(inputs)}, got {len(xs)}"
+    if len(xs) != len(inputs): raise RuntimeError(f"number of inputs != number of operands in formula, expected {len(inputs)}, got {len(xs)}")
 
     # map the value of each letter in the formula
     letter_val = sorted(merge_dicts([dict(zip(letters, tensor.shape)) for letters, tensor in zip(inputs, xs)]).items())
@@ -1941,11 +1942,11 @@ class Tensor(SimpleMathTrait):  # pylint: disable=abstract-method
   # ***** processing ops *****
 
   def _pool(self, k_:Tuple[sint, ...], stride:Union[Tuple[int, ...], int]=1, dilation:Union[Tuple[int, ...], int]=1) -> Tensor:
-    assert len(self.shape) >= len(k_), f"can't pool {self.shape} with {k_}"
+    if not len(self.shape) >= len(k_): raise RuntimeError(f"can't pool {self.shape} with {k_}")
     s_, d_ = make_tuple(stride, len(k_)), make_tuple(dilation, len(k_))
-    assert len(k_) == len(s_) == len(d_), f"stride/dilation mismatch kernel:{k_} stride:{s_} dilation:{d_}"
+    if not (len(k_) == len(s_) == len(d_)): raise RuntimeError(f"stride/dilation mismatch kernel:{k_} stride:{s_} dilation:{d_}")
     noop_, i_ = [None] * len(self.shape[:-len(k_)]), self.shape[-len(k_):]
-    assert all(resolve(d*(k-1)+1 <= i) for k,d,i in zip(k_, d_, i_)), "kernel size cannot be greater than actual input size"
+    if not all(resolve(d*(k-1)+1 <= i) for k,d,i in zip(k_, d_, i_)): raise RuntimeError("kernel size cannot be greater than actual input size")
     o_ = [ceildiv(i - d * (k-1), s) for i,d,k,s in zip(i_, d_, k_, s_)]
     if any(resolve(k > s) for k,s in zip(k_, s_)) or any(d != 1 for d in d_):
       # repeats such that we don't need padding
@@ -2110,8 +2111,8 @@ class Tensor(SimpleMathTrait):  # pylint: disable=abstract-method
     """
     if IMAGE: return self.image_dot(w, acc_dtype)
     n1, n2 = len(self.shape), len(w.shape)
-    assert n1 != 0 and n2 != 0, f"both arguments to matmul need to be at least 1D, but they are {n1}D and {n2}D"
-    if (L:=self.shape[-1]) != (R:=w.shape[-min(n2, 2)]): raise AssertionError(f"shapes {self.shape} and {w.shape} cannot be multiplied ({L} != {R})")
+    if n1 == 0 or n2 == 0: raise RuntimeError(f"both arguments to matmul need to be at least 1D, but they are {n1}D and {n2}D")
+    if (L:=self.shape[-1]) != (R:=w.shape[-min(n2, 2)]): raise RuntimeError(f"shapes {self.shape} and {w.shape} cannot be multiplied ({L} != {R})")
     x = self.reshape(*self.shape[0:-1], *[1]*min(n1-1, n2-1, 1), self.shape[-1])
     w = w.reshape(*w.shape[0:-2], *[1]*min(n1-1, n2-1, 1), *w.shape[-min(n2, 2):]).transpose(-1, -min(n2, 2))
     return (x*w).sum(-1, acc_dtype=acc_dtype).cast(least_upper_dtype(x.dtype, w.dtype) if acc_dtype is None else acc_dtype)
