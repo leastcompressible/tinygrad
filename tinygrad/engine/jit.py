@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, Callable, List, Tuple, Union, Dict, cast, Optional, Any
+from typing import TypeVar, Generic, Callable, List, Tuple, Union, Dict, Optional, Any
 import functools, collections
 from tinygrad.tensor import Tensor
 from tinygrad.engine.lazy import LazyBuffer
