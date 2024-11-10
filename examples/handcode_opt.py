@@ -10,6 +10,8 @@ from tinygrad.engine.schedule import create_schedule
 from tinygrad.engine.search import time_linearizer, beam_search, bufs_from_lin
 from tinygrad.helpers import DEBUG, ansilen, getenv, colored, TRACEMETA
 
+# test
+
 def get_sched_resnet():
   mdl = ResNet50()
   optim = (nn.optim.LARS if getenv("LARS") else nn.optim.SGD)(nn.state.get_parameters(mdl))
