@@ -506,7 +506,7 @@ def flops_mem(uops:List[UOp], ignore_indexing=False) -> Tuple[sint, sint]:
         mults *= u.arg[1] # NOTE: we don't push to the mult_stack here, you can't end these
       case Ops.LOAD: mem += u.dtype.itemsize * mults
       case Ops.STORE: mem += u.src[1].dtype.itemsize * mults
-      case GroupOp.ALU:
+      case _ if u.op in GroupOp.ALU:
         if u not in dont_count: flops += (mults * (2 if u.op is TernaryOps.MULACC else 1)) * u.dtype.count
       case Ops.WMMA:
         if u not in dont_count: flops += 2 * prod(u.arg[1]) // u.arg[5] * mults
