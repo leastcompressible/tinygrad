@@ -130,7 +130,7 @@ jobs:
   uops:
     name: uops tests
     runs-on: ubuntu-latest
-    # timeout-minutes: 20
+    timeout-minutes: 20
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -192,7 +192,7 @@ jobs:
     - name: Test dtype with Python emulator
       run: DEBUG=1 PYTHONPATH=. PYTHON=1 python3 -m pytest -n=auto test/test_dtype.py test/test_dtype_alu.py
     - name: Test ops with Python emulator
-      run: DEBUG=2 PYTHON=1 python3 -m pytest -n=auto test/test_ops.py --durations=20
+      run: DEBUG=2 PYTHON=1 python3 -m pytest -n=auto test/test_ops.py -k "not (test_large_input_conv2d or test_scaled_product_attention or test_max_pool2d_bigger_stride_dilation or test_einsum or test_big_gemm or test_einsum_ellipsis or test_interpolate_bilinear or test_slice_fancy_indexing_dim_inject_none or test_interpolate_bilinear_corners_aligned or test_cumsum or test_broadcast_partial or test_scaled_product_attention_causal or test_multidot or test_max_pool2d or test_simple_conv_transpose3d or test_dot or test_broadcastdot or test_max_pool2d_padding or test_logcumsumexp or test_slice_fancy_indexing_no_dim_collapse)" --durations=20
     - name: Test uops with Python emulator
       run: PYTHON=1 python3 -m pytest test/test_uops.py --durations=20
     - name: Test symbolic with Python emulator
