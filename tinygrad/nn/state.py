@@ -123,10 +123,7 @@ def load_state_dict(model, state_dict:Dict[str, Tensor], strict=True, verbose=Tr
       if k not in state_dict and not strict:
         if DEBUG >= 1: print(f"WARNING: not loading {k}")
         continue
-      if isinstance((mlb:=v.lazydata), MultiLazyBuffer):
-        if isinstance(state_dict[k].lazydata, MultiLazyBuffer): v.replace(state_dict[k]).realize()
-        else: v.replace(state_dict[k].shard(mlb.device, mlb.axis)).realize()
-      else: v.replace(state_dict[k].to(v.device)).realize()
+      v.replace(Tensor(state_dict[k].lazydata, device=v.device)).realize()
       if consume: del state_dict[k]
 
 def tar_extract(fn:os.PathLike) -> Dict[str, Tensor]:
