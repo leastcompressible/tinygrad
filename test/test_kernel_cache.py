@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import unittest
-from tinygrad.tensor import Tensor
-from tinygrad import Device
+from tinygrad import Tensor, Device
+from tinygrad.engine.realize import method_cache
 
 class TestKernelCache(unittest.TestCase):
   def test_kernel_cache_in_action(self):
     if Device.DEFAULT not in ["CLANG"]:
       self.skipTest("No custom kernel cache is implemented")
+
+    method_cache.clear()
 
     a = Tensor.rand(4,4)
     b = Tensor.rand(4,4)
