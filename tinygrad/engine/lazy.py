@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional, Any, Tuple, List, get_args
 from tinygrad.dtype import dtypes, DType, ConstType, to_dtype, ImageDType
 from tinygrad.helpers import prod, getenv, all_int, all_same, DEBUG, _METADATA, Metadata, SPLIT_REDUCEOP, LAZYCACHE

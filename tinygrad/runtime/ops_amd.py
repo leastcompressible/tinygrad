@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Tuple, List, Any, Optional
 import os, ctypes, ctypes.util, functools, pathlib, mmap, errno, array, contextlib, sys
 assert sys.platform != 'win32'

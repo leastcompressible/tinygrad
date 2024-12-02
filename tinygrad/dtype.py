@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Final, Optional, ClassVar, Set, Tuple, Dict, Union, Callable, Literal
 import math, struct, ctypes, functools
 from dataclasses import dataclass, fields

@@ -1,4 +1,3 @@
-from __future__ import annotations
 import ctypes, functools
 from typing import Tuple
 from tinygrad.device import Compiled, Compiler, MallocAllocator

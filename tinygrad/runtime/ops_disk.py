@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os, sys, mmap, io, ctypes, ctypes.util, contextlib
 from typing import Optional, Generator, Tuple, Callable, List
 from tinygrad.helpers import OSX, round_up

@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Any, List, Optional, Set, Union, Tuple, Dict, Callable, cast, TYPE_CHECKING, Type, DefaultDict
 import sys, time, functools, itertools, math, operator, hashlib, os, types, pickle, pathlib, inspect
 from enum import auto, IntEnum, Enum

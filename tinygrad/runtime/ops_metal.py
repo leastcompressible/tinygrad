@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os, subprocess, pathlib, ctypes, tempfile, functools
 from typing import List, Any, Tuple, Optional, cast
 from tinygrad.helpers import prod, getenv, T

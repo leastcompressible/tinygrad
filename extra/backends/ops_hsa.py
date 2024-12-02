@@ -1,4 +1,3 @@
-from __future__ import annotations
 import ctypes, functools, subprocess, io, atexit, collections, json
 from typing import Tuple, TypeVar, List, Dict, Any
 import tinygrad.runtime.autogen.hsa as hsa
