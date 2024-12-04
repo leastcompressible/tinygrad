@@ -950,7 +950,7 @@ def div_and_mod_folding(x: UOp, c: int, which: Literal[Ops.MOD, Ops.IDIV], split
 
 def lt_folding(x:UOp, c:int) -> Optional[UOp]:
   p, np = partition(split_uop(x, Ops.ADD), lambda u: u.const_factor() == 1)
-  if np and (d:=math.gcd(*[u.const_factor() for u in np], c)) > 1 and 0 <= sum(u.vmin for u in p) and sum(u.vmax for u in p) < d:
+  if np and (d:=math.gcd(*[u.const_factor() for u in np], c)) > 1 and 0 <= (s:=functools.reduce(operator.add, p, x.const_like(0))).vmin and s.vmin//d == s.vmax//d:
     return cast(UOp, functools.reduce(operator.add, np).divides(d)).lt(c//d)
   return None
 
