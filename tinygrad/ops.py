@@ -1118,6 +1118,9 @@ symbolic = symbolic_simple+PatternMatcher([
   # x//c0<c1 for positive int c0
   ((UPat.var("x", dtype=dtypes.ints)//UPat.cvar("c0", vec=False))<UPat.cvar("c1", vec=False),
    lambda x,c0,c1: x<(c1.arg*c0.arg) if c0.arg > 0 else None),
+  # x//c0<c1 for negative int c0 and non-positive c1
+  ((UPat.var("x", dtype=dtypes.ints)//UPat.cvar("c0", vec=False))<UPat.cvar("c1", vec=False),
+   lambda x,c0,c1: (-x)<(-c1.arg*c0.arg) if c0.arg < 0 and c1.arg <= 0 else None),
   # ** move add/mul consts to end (NOTE: this is still happening before constant folding) **
   (UPat(Ops.ADD, src=(UPat.var("x"), UPat.cvar("c1"))) + UPat.var("y"), lambda x,c1,y: (x+y)+c1),
   (UPat(Ops.MUL, src=(UPat.var("x"), UPat.cvar("c1"))) * UPat.var("y"), lambda x,c1,y: (x*y)*c1),

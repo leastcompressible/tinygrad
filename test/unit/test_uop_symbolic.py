@@ -475,7 +475,7 @@ class TestSymbolic(unittest.TestCase):
   def test_idiv_lt(self):
     idx = Variable("idx", 0, 24)
     self.helper_test_variable((idx//4<3), 0, 1, "(idx<12)")
-    self.helper_test_variable((idx//-4<-3), 0, 1, "((idx//-4)<-3)")
+    self.helper_test_variable((idx//-4<-3), 0, 1, "((idx*-1)<-12)")
 
   def test_simplex_lt(self):
     a = Variable("a", 0, 3)
