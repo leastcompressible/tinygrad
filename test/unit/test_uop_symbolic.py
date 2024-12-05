@@ -417,7 +417,6 @@ class TestSymbolic(unittest.TestCase):
     self.helper_test_variable((-gidx*8-lidx+1001)//-4 + 250, 0, 250, "(((((gidx*-8)+(lidx*-1))+1001)//-4)+250)")
     self.helper_test_variable((-gidx*8-lidx+1002)//-4 + 250, 0, 250, "(((((gidx*-8)+(lidx*-1))+1002)//-4)+250)")
 
-  # NOTE: tests are not correct in symbolic
   def test_div_neg_then_neg(self):
     # taken from arange opts
     lidx0 = Variable("lidx0", 0, 7)
@@ -524,6 +523,13 @@ class TestSymbolic(unittest.TestCase):
 
     # not combining  # TODO: can combine if one is identity element const
     self.helper_test_variable(aa+ab, 0, 6, "((a if (x<2) else b)+(a if (x<2) else 0))")
+
+  def test_where_flip(self):
+    cond = Variable("a", 0, 3).lt(2).logical_not()
+    t, f = Variable("t", 0, 3), Variable("f", 0, 3)
+    self.helper_test_variable(cond, 0, 1, "((a<2)!=True)")
+    self.helper_test_variable(cond.where(t, f), 0, 3, "(f if (a<2) else t)")
+    self.helper_test_variable(cond.where(f, t), 0, 3, "(t if (a<2) else f)")
 
 class TestSymbolicNumeric(unittest.TestCase):
   def helper_test_numeric(self, f):
