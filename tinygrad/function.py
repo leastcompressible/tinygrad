@@ -42,10 +42,10 @@ class Sin(Function):
 
 class Relu(Function):
   def forward(self, x:LazyBuffer) -> LazyBuffer:
-    self.ret = x.maximum(0)
-    return self.ret
+    self.activated = x > 0
+    return self.activated.cast(x.dtype) * x
 
-  def backward(self, grad_output:LazyBuffer) -> LazyBuffer: return (self.ret>0).cast(grad_output.dtype) * grad_output
+  def backward(self, grad_output:LazyBuffer) -> LazyBuffer: return self.activated.cast(grad_output.dtype) * grad_output
 
 class Log(Function):
   def forward(self, x:LazyBuffer) -> LazyBuffer:
