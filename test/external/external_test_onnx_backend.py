@@ -86,7 +86,7 @@ backend_test.exclude('test_nonzero_*')
 # no support for mod
 backend_test.exclude('test_mod_*')
 
-# no boolean ops (2d, 3d, 4d)
+# no bitshift
 backend_test.exclude('test_bitshift_*')
 
 # no string ops
@@ -132,7 +132,6 @@ backend_test.exclude('test_hardmax_*')
 backend_test.exclude('test_gridsample_*')
 backend_test.exclude('test_dft_*')
 backend_test.exclude('test_einsum_batch_diagonal_cpu*') # TODO: equation = '...ii ->...i'
-backend_test.exclude('test_einsum_inner_prod_cpu*') # TODO: equation = 'i,i'
 backend_test.exclude('test_unique_*')
 backend_test.exclude('test_sequence_*')
 backend_test.exclude('test_nonmaxsuppression_*')
@@ -169,11 +168,6 @@ if Device.DEFAULT in ['GPU', 'METAL']:
   backend_test.exclude('test_resize_upsample_sizes_nearest_axes_2_3_cpu')
   backend_test.exclude('test_resize_upsample_sizes_nearest_axes_3_2_cpu')
   backend_test.exclude('test_resize_upsample_sizes_nearest_cpu')
-
-if Device.DEFAULT == "METAL" or (OSX and Device.DEFAULT == "GPU"):
-  # numerical inaccuracy
-  backend_test.exclude('test_mish_cpu')
-  backend_test.exclude('test_mish_expanded_cpu')
 
 # disable model tests for now since they are slow
 if not getenv("MODELTESTS"):
