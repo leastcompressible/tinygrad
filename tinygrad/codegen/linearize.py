@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, DefaultDict
 import collections, heapq
 from dataclasses import dataclass

@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import List, Optional, Dict, Tuple, cast, Type, Union, TypeVar, Generic, Any
 import contextlib, decimal, statistics, random, json, atexit, time, ctypes, array
 from tinygrad.helpers import PROFILEPATH, PROFILE, from_mv, getenv, to_mv, round_up

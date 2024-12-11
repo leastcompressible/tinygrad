@@ -1,4 +1,3 @@
-from __future__ import annotations
 import itertools, functools
 from dataclasses import dataclass
 from collections import defaultdict

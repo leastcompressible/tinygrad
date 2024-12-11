@@ -1,5 +1,4 @@
 # original implementation: https://github.com/svc-develop-team/so-vits-svc
-from __future__ import annotations
 import sys, logging, time, io, math, argparse, operator, numpy as np
 from functools import partial, reduce
 from pathlib import Path

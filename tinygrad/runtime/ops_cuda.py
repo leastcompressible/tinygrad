@@ -1,4 +1,3 @@
-from __future__ import annotations
 import ctypes, ctypes.util, functools
 from typing import Tuple, Optional, List
 from tinygrad.helpers import DEBUG, getenv, from_mv, init_c_var, init_c_struct_t

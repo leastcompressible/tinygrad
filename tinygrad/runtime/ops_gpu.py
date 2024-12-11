@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Tuple, Optional, List, cast
 import ctypes, functools, hashlib, contextlib
 from tinygrad.runtime.autogen import opencl as cl

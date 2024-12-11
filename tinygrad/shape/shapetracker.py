@@ -1,5 +1,4 @@
 # ShapeTracker allows movement operations to a buffer that don't require a copy to be made.
-from __future__ import annotations
 from dataclasses import dataclass
 import functools
 from typing import Tuple, List, Optional, Dict, Set

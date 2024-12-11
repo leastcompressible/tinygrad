@@ -1,4 +1,3 @@
-from __future__ import annotations
 from dataclasses import dataclass, replace
 from collections import defaultdict
 from typing import Optional, Dict, Tuple, Any, Iterator

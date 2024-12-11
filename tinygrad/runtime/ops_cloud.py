@@ -4,7 +4,6 @@
 # this client and server can be on the same machine, same network, or just same internet
 # it should be a secure (example: no use of pickle) boundary. HTTP is used for RPC
 
-from __future__ import annotations
 from typing import Tuple, Optional, Dict, Any, DefaultDict, List
 from collections import defaultdict
 from dataclasses import dataclass, field
