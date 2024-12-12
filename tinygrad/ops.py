@@ -287,7 +287,7 @@ class UOp(MathTrait, metaclass=UOpMetaClass):
       return graph_rewrite(self, symbolic)
   def ssimplify(self) -> Union[UOp, ConstType]: return ret.arg if (ret:=self.simplify()).op is Ops.CONST else ret
   def _eval(self, dtype, expected_type:Type[T]) -> T:
-    assert self.dtype in dtype, f"eval with wrong dtype {self}"
+    assert self.dtype in dtype, f"eval with wrong dtype. {expected_type=}, {self}"
     vmin, vmax = (simple_self:=self.simplify())._min_max
     if vmin != vmax: raise ValueError(f"eval failed to be a single number, range is {vmin} to {vmax} in {simple_self.render()}")
     assert isinstance(vmin, expected_type), f"vmin is wrong dtype {type(vmin)} != {expected_type}"
