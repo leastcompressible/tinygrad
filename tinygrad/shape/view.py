@@ -135,9 +135,8 @@ class View:
     # simplify as we go
     if isinstance(offset, UOp): offset = cast(sint, offset.ssimplify())
     shape = tuple(cast(sint, x.ssimplify()) if isinstance(x, UOp) else x for x in shape)
-    # TODO: enabling stride simplification breaks it
-    """
     strides = tuple(x.ssimplify() if isinstance(x, UOp) else x for x in strides)
+    """
     if mask: mask = tuple((s.ssimplify() if isinstance(s, UOp) else s, e.ssimplify() if isinstance(e, UOp) else e) for s,e in mask)
     """
     contiguous = offset == 0 and mask is None and strides == strides_for_shape(shape)
