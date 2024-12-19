@@ -239,8 +239,7 @@ class UOp(MathTrait, metaclass=UOpMetaClass):
   arg:Any = None
   def __del__(self):
     if self.op is Ops.BUFFER and (buffer:=buffers.get(self)) is not None: buffer.ref(-1)
-    if (k:=(self.op, self.dtype, self.src, self.arg)) in UOpMetaClass.ucache:
-      del UOpMetaClass.ucache[k]
+    UOpMetaClass.ucache.pop((self.op, self.dtype, self.src, self.arg), None)
   def __reduce__(self):
     args = [self.op, self.dtype, self.src, self.arg]
     if (_device_buffer:=self.realized) is not None and PICKLE_BUFFERS: args.extend([_device_buffer])
