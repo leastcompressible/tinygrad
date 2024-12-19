@@ -163,10 +163,7 @@ class View:
     if vm1.mask:
       if (merged := vm2 + vm1.shrink(vm1.mask)) is None: return None
       return merged.pad(tuple((b,s-e) for (b,e),s in zip(vm1.mask, vm1.shape)))
-    if not vm1.shape:
-      print(f"{self=}")
-      print(f"{vm1=}")
-      assert vm1.shape
+    if not vm1.shape: return vm1
     if not all_int(vm1.shape): return None
 
     # Project vm1's offset and strides on to vm2.
