@@ -166,7 +166,7 @@ class View:
     if not vm1.shape:
       print(f"{self=}")
       print(f"{vm1=}")
-      raise
+      assert vm1.shape
     if not all_int(vm1.shape): return None
 
     # Project vm1's offset and strides on to vm2.
