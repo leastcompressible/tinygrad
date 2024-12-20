@@ -617,7 +617,7 @@ class Tensor(SimpleMathTrait):
     return (Tensor.full((output_len,), step, dtype=dtype, **kwargs)._cumalu(0, Ops.ADD) + (start - step)).cast(dtype)
 
   @staticmethod
-  def linspace(start:Union[int, float], stop:Union[int, float], steps:int, **kwargs) -> Tensor:
+  def linspace(start:Union[int, float], stop:Union[int, float], steps:int, dtype:Optional[DTypeLike]=None, **kwargs) -> Tensor:
     """
     Returns a 1-D tensor of `steps` evenly spaced values from `start` to `stop`, inclusive.
 
@@ -632,7 +632,7 @@ class Tensor(SimpleMathTrait):
     ```
     """
     if steps < 0: raise ValueError("number of steps must be non-negative")
-    if (dtype := to_dtype(kwargs.pop("dtype", dtypes.default_float))) == dtypes.bool: raise ValueError("linspace with bool dtype is not supported")
+    if (dtype:=to_dtype(dtype or dtypes.default_float)) == dtypes.bool: raise ValueError("linspace with bool dtype is not supported")
     if steps == 1: return Tensor([start], dtype=dtype, **kwargs)
     return (start + Tensor.arange(steps, **kwargs) * ((stop - start) / (steps - 1))).cast(dtype)
 
@@ -737,11 +737,11 @@ class Tensor(SimpleMathTrait):
     ```
     """
     # https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
-    src = Tensor.rand((2, *argfix(*shape)), **{**kwargs, "dtype": dtypes.float32})
+    src = Tensor.rand((2, *argfix(*shape)), dtype=dtypes.float32, **kwargs)
     return (src[0].mul(2*math.pi).cos().mul((1 - src[1]).log().mul(-2).sqrt()).cast(dtype or dtypes.default_float)).requires_grad_(requires_grad)
 
   @staticmethod
-  def randint(*shape, low=0, high=10, dtype=dtypes.int32, **kwargs) -> Tensor:
+  def randint(*shape, low=0, high=10, dtype:DTypeLike=dtypes.int32, **kwargs) -> Tensor:
     """
     Creates a tensor with the given shape, filled with random integer values generated uniformly from the interval `[low, high)`.
     If `dtype` is not specified, the default type is used.
@@ -755,8 +755,7 @@ class Tensor(SimpleMathTrait):
     ```
     """
     if not isinstance(low, int) or not isinstance(high, int): raise TypeError(f"{low=} and {high=} must be integers")
-    dtype = to_dtype(dtype)
-    if not dtypes.is_int(dtype): raise TypeError(f"{dtype=} must be int")
+    if not dtypes.is_int(dtype:=to_dtype(dtype)): raise TypeError(f"{dtype=} must be int")
     return Tensor.uniform(*shape, low=low, high=high, dtype=dtype, **kwargs)
 
   @staticmethod
