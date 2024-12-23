@@ -193,7 +193,11 @@ class View:
       for (b, e), o, term, (_, t) in zip(vm2.mask, origin, terms, reversed(extents)):
         if resolve(b <= t.vmin and t.vmax < e, False): continue
         if len(term) != 1:
-          if not term and newe: newe[0] = 0
+          if not term and newe:
+            print(f"{self=}")
+            print(f"{vm1=}")
+            raise
+            newe[0] = 0
           else: bad = True
           continue
         d1, s1 = term[0]
