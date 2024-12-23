@@ -159,6 +159,16 @@ class View:
       return merged.pad(tuple((b,s-e) for (b,e),s in zip(vm1.mask, vm1.shape)))
     if not all_int(vm1.shape): return None
 
+    if not vm1.shape:
+      print(f"{self=}")
+      print(f"{vm1=}")
+      raise
+
+    if not vm2.shape:
+      print(f"{self=}")
+      print(f"{vm1=}")
+      raise
+
     # Project vm1's offset and strides on to vm2.
     origin = unravel(vm2.shape, vm1.offset)
     terms: list[list[tuple[int, sint]]] = [[] for _ in vm2.shape]
