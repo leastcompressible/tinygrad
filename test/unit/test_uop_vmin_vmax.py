@@ -129,6 +129,12 @@ class TestVminVmaxDivMod(unittest.TestCase):
     self.assertEqual(uop.vmin, -3)
     self.assertEqual(uop.vmax, 3)
 
+    # non-positive mod positive
+    x = UOp.variable('x', -10, 0)
+    uop = x % 4
+    self.assertEqual(uop.vmin, -3)
+    self.assertEqual(uop.vmax, 0)
+
 class TestVminVmaxVConst(unittest.TestCase):
   def test_vmin_vmax_vconst_single_element(self):
     # vmin and vmax for a single-element vector constant
