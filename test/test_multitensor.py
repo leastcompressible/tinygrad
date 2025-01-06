@@ -181,7 +181,7 @@ class TestMultiTensor(unittest.TestCase):
     # copy to N device, the busiest source send at most ceil(log2(N+1)) copy
     a = Tensor.rand(10).realize()
     devices = tuple(f"{Device.DEFAULT}:{i}" for i in range(15))
-    schedule = [s for s in a.to(devices).schedule_with_vars()[0] if s.ast.op is UOps.COPY]
+    schedule = [s for s in a.to(devices).schedule_with_vars()[0] if s.ast.op is Ops.COPY]
     src_dest = defaultdict(list)
     for s in schedule: src_dest[s.bufs[1].device].append(s.bufs[0].device)
     self.assertEqual(max([len(v) for v in src_dest.values()]), 4)
