@@ -881,19 +881,19 @@ class RewriteContext:
   def __init__(self, pm, ctx):
     self.pm: PatternMatcher = pm
     self.ctx = ctx
-    self.replace: dict[UOp, UOp] = {}
+    self.replace: dict[int, UOp] = {}
   def rewrite(self, n:UOp) -> UOp:
-    if (rn := self.replace.get(n)) is not None: return rn
+    if (rn := self.replace.get(id(n))) is not None: return rn
     new_src = tuple(map(self.rewrite, n.src))
     new_n = self.pm.rewrite(n, self.ctx) if new_src == n.src else UOp(n.op, n.dtype, new_src, n.arg)
-    self.replace[n] = ret = n if new_n is None else self.rewrite(new_n)
+    self.replace[id(n)] = ret = n if new_n is None else self.rewrite(new_n)
     return ret
   def bottom_up_rewrite(self, n:UOp) -> UOp:
-    if (rn := self.replace.get(n)) is not None: return rn
+    if (rn := self.replace.get(id(n))) is not None: return rn
     new_n: UOp|None = n
     while new_n is not None: last_n, new_n = new_n, self.pm.rewrite(new_n, self.ctx)
     new_src = tuple(map(self.bottom_up_rewrite, last_n.src))
-    self.replace[n] = ret = last_n if new_src == last_n.src else self.bottom_up_rewrite(UOp(last_n.op, last_n.dtype, new_src, last_n.arg))
+    self.replace[id(n)] = ret = last_n if new_src == last_n.src else self.bottom_up_rewrite(UOp(last_n.op, last_n.dtype, new_src, last_n.arg))
     return ret
 
 def graph_rewrite(sink:UOp, pm:PatternMatcher, ctx=None, bottom_up=False) -> UOp:
