@@ -41,7 +41,7 @@ def to_sharded(lbs:list[UOp], axis:int, bounds: tuple[tuple[int, int], ...]) -> 
   if DEBUG >= 3 and lbs[0].shape[axis] % len(lbs) != 0: print(f"multi axis uneven: {lbs[0].shape=} {axis=} {len(lbs)=}, bounds={bounds}")
   return [lb.shrink(tuple((0,s) if a != axis else bound for a,s in enumerate(lb.shape))) for i, (bound, lb) in enumerate(zip(bounds, lbs))]
 
-def copy_multi(lb:LazyBuffer, devices:Tuple[str, ...]) -> List[LazyBuffer]:
+def copy_multi(lb:UOp, devices:tuple[str, ...]) -> list[UOp]:
   # return the copyed lazybuffers, one for each device in devices
   ret = [lb.copy_to_device(devices[0], force=True)] if devices else []
   while len(ret) < len(devices): ret.extend([rlb.copy_to_device(device, force=True) for rlb, device in zip(ret, devices[len(ret):])])
@@ -71,7 +71,8 @@ class MultiLazyBuffer(MathTrait):
   def from_sharded(lb:UOp, devices:tuple[str, ...], axis:int|None, bounds:tuple[tuple[int, int], ...]|None):
     assert (axis is None) == (bounds is None), "must specify bounds iff axis is specified"
     if axis is None or bounds is None: sharded_lbs = copy_multi(lb, devices)
-    else: sharded_lbs = [lb.copy_to_device(d) for lb,d in zip(to_sharded([lb] * len(devices), axis, bounds), devices)]    # NOTE: this contiguous is making it impossible for the scheduler to do late const folding
+    else: sharded_lbs = [lb.copy_to_device(d) for lb,d in zip(to_sharded([lb] * len(devices), axis, bounds), devices)]
+    # NOTE: this contiguous is making it impossible for the scheduler to do late const folding
     return MultiLazyBuffer([lb.contiguous(allow_buffer_view=False) for lb in sharded_lbs], axis)
 
   def copy_to_device(self, device:str) -> UOp:
