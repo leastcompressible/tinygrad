@@ -399,19 +399,18 @@ class Tensor(SimpleMathTrait):
     Shards the tensor across the given devices. Optionally specify which axis to shard on, and how to split it across devices.
 
     ```python exec="true" source="above" session="tensor" result="python"
-    t = Tensor.empty(2, 3)
-    print(t.shard((t.device, t.device), axis=1, splits=(2, 1)).lazydata)
+    t = Tensor.empty(2, 4)
+    print(t.shard((t.device, t.device), axis=1).lazydata)
     ```
-
     """
     assert isinstance(self.lazydata, UOp), "can't shard a MultiLazyBuffer"
     devices, bounds = tuple(Device.canonicalize(x) for x in devices), None
     if axis is not None:
       axis = self._resolve_dim(axis)
-      if splits is None:
-        if not isinstance(total:=self.shape[axis], int): raise RuntimeError(f"cannot shard symbolic shape {self.shape=}, {axis=}")
-        sz = ceildiv(total, len(devices))
-        splits = tuple([max(0, min(sz, total - sz*i)) for i in range(len(devices))])
+      assert splits is None, splits
+      if not isinstance(total:=self.shape[axis], int): raise RuntimeError(f"cannot shard symbolic shape {self.shape=}, {axis=}")
+      sz = ceildiv(total, len(devices))
+      splits = tuple([max(0, min(sz, total - sz*i)) for i in range(len(devices))])
       assert sum(splits) == self.shape[axis], "specified splits do not sum up to axis shape"
       bounds = tuple(itertools.pairwise(itertools.accumulate(splits, initial=0)))
     return Tensor(MultiLazyBuffer.from_sharded(self.lazydata, devices, axis, bounds), device=devices, requires_grad=self.requires_grad)
